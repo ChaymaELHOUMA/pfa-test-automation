@@ -1,0 +1,113 @@
+package com.smartautomation.testautomation.service;
+
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
+
+import com.smartautomation.testautomation.model.NodeExecutionResult;
+
+
+@Service
+public class NodeBridgeService {
+
+    private static final Logger log = LoggerFactory.getLogger(NodeBridgeService.class);
+
+    @Value("${node.bridge.timeout-seconds:30}")
+    private long timeoutSeconds;
+
+    @Value("${node.bridge.scripts-dir:node-runner}")
+    private String scriptsDir;
+
+    public NodeExecutionResult runScript(String scriptName, String... args) {
+        String scriptPath = scriptsDir + "/" + scriptName;
+        return runScriptAtPath(scriptPath, args);
+    }
+
+  
+    public NodeExecutionResult runScriptAtPath(String scriptPath, String... args) {
+        List<String> command = new ArrayList<>();
+        command.add("node");
+        command.add(scriptPath);
+        command.addAll(Arrays.asList(args));
+
+        log.debug("Lancement du process Node : {}", command);
+
+        ProcessBuilder pb = new ProcessBuilder(command);
+        pb.redirectErrorStream(false); // stdout et stderr restent separes
+
+        Process process = null;
+        try {
+            process = pb.start();
+
+            StringBuilder stdoutBuffer = new StringBuilder();
+            StringBuilder stderrBuffer = new StringBuilder();
+
+           
+            Thread stdoutThread = lireFluxDeFaconAsynchrone(process.getInputStream(), stdoutBuffer, "stdout");
+            Thread stderrThread = lireFluxDeFaconAsynchrone(process.getErrorStream(), stderrBuffer, "stderr");
+
+            boolean termineATemps = process.waitFor(timeoutSeconds, TimeUnit.SECONDS);
+
+            if (!termineATemps) {
+                log.warn("Timeout depasse ({}s) pour le script {}, destruction forcee du process", timeoutSeconds, scriptPath);
+                process.destroyForcibly();
+                stdoutThread.interrupt();
+                stderrThread.interrupt();
+                return NodeExecutionResult.echecTimeout();
+            }
+
+            stdoutThread.join(2000);
+            stderrThread.join(2000);
+
+            int exitCode = process.exitValue();
+            String stdout = stdoutBuffer.toString();
+            String stderr = stderrBuffer.toString();
+
+            if (exitCode != 0) {
+                log.warn("Le script {} s'est termine avec le code {} : {}", scriptPath, exitCode, stderr);
+                return NodeExecutionResult.echecExitCode(stdout, stderr, exitCode);
+            }
+
+            return NodeExecutionResult.ok(stdout, stderr, exitCode);
+
+        } catch (IOException e) {
+            log.error("Impossible de lancer le process Node pour le script {}", scriptPath, e);
+            return NodeExecutionResult.echecTechnique("Erreur de lancement du process : " + e.getMessage());
+
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            if (process != null) {
+                process.destroyForcibly();
+            }
+            log.error("Process Node interrompu pour le script {}", scriptPath, e);
+            return NodeExecutionResult.echecTechnique("Process interrompu : " + e.getMessage());
+        }
+    }
+
+    private Thread lireFluxDeFaconAsynchrone(InputStream stream, StringBuilder cible, String nomFlux) {
+        Thread thread = new Thread(() -> {
+            try (BufferedReader reader = new BufferedReader(new InputStreamReader(stream, StandardCharsets.UTF_8))) {
+                String ligne;
+                while ((ligne = reader.readLine()) != null) {
+                    cible.append(ligne).append(System.lineSeparator());
+                }
+            } catch (IOException e) {
+                log.debug("Fin de lecture du flux {} ({})", nomFlux, e.getMessage());
+            }
+        });
+        thread.setDaemon(true);
+        thread.start();
+        return thread;
+    }
+}

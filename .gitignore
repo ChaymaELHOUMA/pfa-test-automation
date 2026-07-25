@@ -1,0 +1,9 @@
+target/
+*.class
+*.log
+.idea/
+*.iml
+.vscode/
+.DS_Store
+generated-tests/*.test.js
+node_modules/
