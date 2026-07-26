@@ -4,69 +4,58 @@ import java.util.List;
 
 public class LlmRequest {
 
-    private String model;
-    private int maxTokens;
-    private List<Message> messages;
+    private List<Content> contents;
 
     public LlmRequest() {
     }
 
-    public LlmRequest(String model, int maxTokens, String promptUtilisateur) {
-        this.model = model;
-        this.maxTokens = maxTokens;
-        this.messages = List.of(new Message("user", promptUtilisateur));
+    public LlmRequest(String promptUtilisateur) {
+        this.contents = List.of(new Content(List.of(new Part(promptUtilisateur))));
     }
 
-    public String getModel() {
-        return model;
+    public List<Content> getContents() {
+        return contents;
     }
 
-    public void setModel(String model) {
-        this.model = model;
+    public void setContents(List<Content> contents) {
+        this.contents = contents;
     }
 
-    public int getMaxTokens() {
-        return maxTokens;
-    }
+    public static class Content {
+        private List<Part> parts;
 
-    public void setMaxTokens(int maxTokens) {
-        this.maxTokens = maxTokens;
-    }
-
-    public List<Message> getMessages() {
-        return messages;
-    }
-
-    public void setMessages(List<Message> messages) {
-        this.messages = messages;
-    }
-
-    public static class Message {
-        private String role;
-        private String content;
-
-        public Message() {
+        public Content() {
         }
 
-        public Message(String role, String content) {
-            this.role = role;
-            this.content = content;
+        public Content(List<Part> parts) {
+            this.parts = parts;
         }
 
-        public String getRole() {
-            return role;
+        public List<Part> getParts() {
+            return parts;
         }
 
-        public void setRole(String role) {
-            this.role = role;
+        public void setParts(List<Part> parts) {
+            this.parts = parts;
+        }
+    }
+
+    public static class Part {
+        private String text;
+
+        public Part() {
         }
 
-        public String getContent() {
-            return content;
+        public Part(String text) {
+            this.text = text;
         }
 
-        public void setContent(String content) {
-            this.content = content;
+        public String getText() {
+            return text;
+        }
+
+        public void setText(String text) {
+            this.text = text;
         }
     }
 }

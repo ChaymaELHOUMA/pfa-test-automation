@@ -1,47 +1,67 @@
 package com.smartautomation.testautomation.model;
 
-import java.util.List;
-
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import java.util.List;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class LlmResponse {
 
-    private List<ContentBlock> content;
+    private List<Candidate> candidates;
 
-    public List<ContentBlock> getContent() {
-        return content;
+    public List<Candidate> getCandidates() {
+        return candidates;
     }
 
-    public void setContent(List<ContentBlock> content) {
-        this.content = content;
+    public void setCandidates(List<Candidate> candidates) {
+        this.candidates = candidates;
     }
 
     public String getTexteComplet() {
-        if (content == null || content.isEmpty()) {
+        if (candidates == null || candidates.isEmpty()) {
+            return "";
+        }
+        Candidate premier = candidates.get(0);
+        if (premier.getContent() == null || premier.getContent().getParts() == null) {
             return "";
         }
         StringBuilder sb = new StringBuilder();
-        for (ContentBlock block : content) {
-            if ("text".equals(block.getType()) && block.getText() != null) {
-                sb.append(block.getText());
+        for (Part part : premier.getContent().getParts()) {
+            if (part.getText() != null) {
+                sb.append(part.getText());
             }
         }
         return sb.toString();
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)
-    public static class ContentBlock {
-        private String type;
+    public static class Candidate {
+        private Content content;
+
+        public Content getContent() {
+            return content;
+        }
+
+        public void setContent(Content content) {
+            this.content = content;
+        }
+    }
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public static class Content {
+        private List<Part> parts;
+
+        public List<Part> getParts() {
+            return parts;
+        }
+
+        public void setParts(List<Part> parts) {
+            this.parts = parts;
+        }
+    }
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public static class Part {
         private String text;
-
-        public String getType() {
-            return type;
-        }
-
-        public void setType(String type) {
-            this.type = type;
-        }
 
         public String getText() {
             return text;

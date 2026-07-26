@@ -15,11 +15,15 @@ public class WebClientConfig {
 
     @Bean
     public WebClient llmWebClient() {
-        return WebClient.builder()
-                .baseUrl(baseUrl)
-                .defaultHeader("x-api-key", apiKey)
-                .defaultHeader("anthropic-version", "2023-06-01")
-                .defaultHeader("Content-Type", "application/json")
-                .build();
-    }
+    
+    return WebClient.builder()
+            .baseUrl(baseUrl)
+            .defaultHeader("Content-Type", "application/json")
+            .build();
 }
+
+    public String getApiKey() {
+    return apiKey;
+}
+}
+

@@ -1,7 +1,9 @@
 package com.smartautomation.testautomation.service;
 
-import java.time.Duration;
-
+import com.smartautomation.testautomation.config.WebClientConfig;
+import com.smartautomation.testautomation.exception.LlmCallException;
+import com.smartautomation.testautomation.model.LlmRequest;
+import com.smartautomation.testautomation.model.LlmResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -11,9 +13,7 @@ import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClientRequestException;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
 
-import com.smartautomation.testautomation.exception.LlmCallException;
-import com.smartautomation.testautomation.model.LlmRequest;
-import com.smartautomation.testautomation.model.LlmResponse;
+import java.time.Duration;
 
 
 @Service
@@ -22,6 +22,7 @@ public class LlmService {
     private static final Logger log = LoggerFactory.getLogger(LlmService.class);
 
     private final WebClient webClient;
+    private final WebClientConfig webClientConfig;
 
     @Value("${llm.api.model}")
     private String model;
@@ -29,17 +30,23 @@ public class LlmService {
     @Value("${llm.api.timeout-seconds:20}")
     private long timeoutSeconds;
 
-    public LlmService(@Qualifier("llmWebClient") WebClient webClient) {
+    public LlmService(@Qualifier("llmWebClient") WebClient webClient, WebClientConfig webClientConfig) {
         this.webClient = webClient;
+        this.webClientConfig = webClientConfig;
     }
 
+    
     public String genererTest(String nomFonction, String codeSource) {
         String prompt = construirePromptSimple(nomFonction, codeSource);
-        LlmRequest requete = new LlmRequest(model, 1024, prompt);
+        LlmRequest requete = new LlmRequest(prompt);
+
+        
+        String uri = String.format("/v1beta/models/%s:generateContent?key=%s",
+                model, webClientConfig.getApiKey());
 
         try {
             LlmResponse reponse = webClient.post()
-                    .uri("/v1/messages")
+                    .uri(uri)
                     .bodyValue(requete)
                     .retrieve()
                     .bodyToMono(LlmResponse.class)
