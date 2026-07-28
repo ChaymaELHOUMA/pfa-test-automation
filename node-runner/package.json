@@ -1,0 +1,17 @@
+{
+  "name": "node-runner",
+  "version": "1.0.0",
+  "description": "Jest test runner for pfa-test-automation pipeline",
+  "private": true,
+  "scripts": {
+    "test": "jest"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0"
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "testMatch": ["**/generated-tests/**/*.test.js"],
+    "testTimeout": 30000
+  }
+}

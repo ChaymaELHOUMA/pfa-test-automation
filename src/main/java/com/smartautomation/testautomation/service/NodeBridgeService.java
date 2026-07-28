@@ -17,7 +17,6 @@ import org.springframework.stereotype.Service;
 
 import com.smartautomation.testautomation.model.NodeExecutionResult;
 
-
 @Service
 public class NodeBridgeService {
 
@@ -37,6 +36,12 @@ public class NodeBridgeService {
   
     public NodeExecutionResult runScriptAtPath(String scriptPath, String... args) {
         List<String> command = new ArrayList<>();
+        
+        boolean isWindows = System.getProperty("os.name", "").toLowerCase().contains("win");
+        if (isWindows) {
+            command.add("cmd");
+            command.add("/c");
+        }
         command.add("node");
         command.add(scriptPath);
         command.addAll(Arrays.asList(args));
@@ -44,7 +49,8 @@ public class NodeBridgeService {
         log.debug("Lancement du process Node : {}", command);
 
         ProcessBuilder pb = new ProcessBuilder(command);
-        pb.redirectErrorStream(false); // stdout et stderr restent separes
+        pb.directory(new java.io.File(scriptsDir));
+        pb.redirectErrorStream(false); 
 
         Process process = null;
         try {
@@ -92,6 +98,59 @@ public class NodeBridgeService {
             }
             log.error("Process Node interrompu pour le script {}", scriptPath, e);
             return NodeExecutionResult.echecTechnique("Process interrompu : " + e.getMessage());
+        }
+    }
+
+    public com.smartautomation.testautomation.model.NodeExecutionResult runNpxCommand(long timeoutSec, String... args) {
+        java.util.List<String> command = new java.util.ArrayList<>();
+        
+        boolean isWindows = System.getProperty("os.name", "").toLowerCase().contains("win");
+        if (isWindows) {
+            command.add("cmd");
+            command.add("/c");
+        }
+        command.add("npx");
+        command.addAll(java.util.Arrays.asList(args));
+        log.debug("Running npx command: {}", command);
+        ProcessBuilder pb = new ProcessBuilder(command);
+       
+        pb.directory(new java.io.File(scriptsDir));
+        pb.redirectErrorStream(false);
+        Process process = null;
+        try {
+            process = pb.start();
+            java.lang.StringBuilder stdout = new java.lang.StringBuilder();
+            java.lang.StringBuilder stderr = new java.lang.StringBuilder();
+            Thread outThread = lireFluxDeFaconAsynchrone(process.getInputStream(), stdout, "stdout");
+            Thread errThread = lireFluxDeFaconAsynchrone(process.getErrorStream(), stderr, "stderr");
+            boolean finished = process.waitFor(timeoutSec, java.util.concurrent.TimeUnit.SECONDS);
+            if (!finished) {
+                log.warn("Timeout exceeded ({}s) for npx command {}, destroying process", timeoutSec, java.util.Arrays.toString(args));
+                process.destroyForcibly();
+                outThread.interrupt();
+                errThread.interrupt();
+                return com.smartautomation.testautomation.model.NodeExecutionResult.echecTimeout();
+            }
+            outThread.join(2000);
+            errThread.join(2000);
+            int exitCode = process.exitValue();
+            String outStr = stdout.toString();
+            String errStr = stderr.toString();
+            if (exitCode != 0) {
+                log.warn("npx command {} exited with code {} : {}", java.util.Arrays.toString(args), exitCode, errStr);
+                return com.smartautomation.testautomation.model.NodeExecutionResult.echecExitCode(outStr, errStr, exitCode);
+            }
+            return com.smartautomation.testautomation.model.NodeExecutionResult.ok(outStr, errStr, exitCode);
+        } catch (java.io.IOException e) {
+            log.error("Failed to start npx command {}", java.util.Arrays.toString(args), e);
+            return com.smartautomation.testautomation.model.NodeExecutionResult.echecTechnique("Erreur de lancement du process npx : " + e.getMessage());
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            if (process != null) {
+                process.destroyForcibly();
+            }
+            log.error("npx command interrupted {}", java.util.Arrays.toString(args), e);
+            return com.smartautomation.testautomation.model.NodeExecutionResult.echecTechnique("Process interrompu : " + e.getMessage());
         }
     }
 

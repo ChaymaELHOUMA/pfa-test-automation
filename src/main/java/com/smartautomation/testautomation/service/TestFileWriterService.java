@@ -28,4 +28,11 @@ public class TestFileWriterService {
         Files.writeString(fichier, codeTest, StandardCharsets.UTF_8);
         return fichier;
     }
+
+    public String cheminRelatifPourJest(String nomFonction) {
+        String nomFichier = nomFonction.replaceAll("[^a-zA-Z0-9_-]", "_") + ".test.js";
+        
+        return "generated-tests/" + nomFichier;
+    }
 }
+

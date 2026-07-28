@@ -85,6 +85,9 @@ public class LlmService {
                 %s
 
                 Genere un test unitaire Jest pour cette fonction, couvrant au minimum le cas nominal.
+                IMPORTANT : le fichier de test doit etre autonome et directement executable.
+                Inclus la definition complete de la fonction directement dans le fichier de test
+                (ne fais AUCUN require ni import vers un fichier externe, puisque ce fichier n'existe pas).
                 Reponds uniquement avec un bloc de code JavaScript delimite par ```javascript et ```,
                 sans aucune explication avant ou apres le bloc.
                 """.formatted(nomFonction, codeSource);
