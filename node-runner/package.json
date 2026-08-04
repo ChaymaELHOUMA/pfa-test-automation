@@ -17,6 +17,7 @@
     "testTimeout": 30000
   },
   "dependencies": {
-    "acorn": "^8.18.0"
+    "acorn": "^8.18.0",
+    "acorn-walk": "^8.3.5"
   }
 }

@@ -9,3 +9,4 @@ generated-tests/*.test.js
 node_modules/
 
 .env
+.github/modernize/
