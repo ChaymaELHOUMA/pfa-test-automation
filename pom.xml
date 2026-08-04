@@ -28,6 +28,13 @@
             <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
 
+        <!-- springboot3-dotenv n'existe pas, on utilise spring-dotenv -->
+        <dependency>
+            <groupId>me.paulschwarz</groupId>
+            <artifactId>spring-dotenv</artifactId>
+            <version>4.0.0</version>
+        </dependency>
+
         <!-- WebClient pour l'appel au LLM -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

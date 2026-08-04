@@ -29,12 +29,16 @@ public class NodeBridgeService {
     private String scriptsDir;
 
     public NodeExecutionResult runScript(String scriptName, String... args) {
-        String scriptPath = scriptsDir + "/" + scriptName;
-        return runScriptAtPath(scriptPath, args);
+        // Le repertoire de travail est deja defini sur scriptsDir dans runScriptAtPath
+        return runScriptAtPath(scriptName, args);
     }
 
   
     public NodeExecutionResult runScriptAtPath(String scriptPath, String... args) {
+        return runScriptAtPathWithTimeout(scriptPath, timeoutSeconds, args);
+    }
+
+    public NodeExecutionResult runScriptAtPathWithTimeout(String scriptPath, long customTimeoutSec, String... args) {
         List<String> command = new ArrayList<>();
         
         boolean isWindows = System.getProperty("os.name", "").toLowerCase().contains("win");
@@ -63,10 +67,10 @@ public class NodeBridgeService {
             Thread stdoutThread = lireFluxDeFaconAsynchrone(process.getInputStream(), stdoutBuffer, "stdout");
             Thread stderrThread = lireFluxDeFaconAsynchrone(process.getErrorStream(), stderrBuffer, "stderr");
 
-            boolean termineATemps = process.waitFor(timeoutSeconds, TimeUnit.SECONDS);
+            boolean termineATemps = process.waitFor(customTimeoutSec, TimeUnit.SECONDS);
 
             if (!termineATemps) {
-                log.warn("Timeout depasse ({}s) pour le script {}, destruction forcee du process", timeoutSeconds, scriptPath);
+                log.warn("Timeout depasse ({}s) pour le script {}, destruction forcee du process", customTimeoutSec, scriptPath);
                 process.destroyForcibly();
                 stdoutThread.interrupt();
                 stderrThread.interrupt();

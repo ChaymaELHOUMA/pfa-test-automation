@@ -7,3 +7,5 @@ target/
 .DS_Store
 generated-tests/*.test.js
 node_modules/
+
+.env

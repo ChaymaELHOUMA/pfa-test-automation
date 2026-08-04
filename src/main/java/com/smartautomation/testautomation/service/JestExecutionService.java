@@ -28,9 +28,10 @@ public class JestExecutionService {
     public ExecutionTestResult executerTest(String cheminFichierTest) {
         LOGGER.info("Execution du test genere via Jest : {}", cheminFichierTest);
 
-        NodeExecutionResult resultatProcess = nodeBridgeService.runNpxCommand(
+        NodeExecutionResult resultatProcess = nodeBridgeService.runScriptAtPathWithTimeout(
+                "node_modules/jest/bin/jest.js",
                 timeoutSeconds,
-                "jest", cheminFichierTest, "--json", "--ci"
+                cheminFichierTest, "--json", "--ci"
         );
 
         if (resultatProcess.isTimedOut()) {

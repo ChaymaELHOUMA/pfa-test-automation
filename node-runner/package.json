@@ -11,7 +11,12 @@
   },
   "jest": {
     "testEnvironment": "node",
-    "testMatch": ["**/generated-tests/**/*.test.js"],
+    "testMatch": [
+      "**/generated-tests/**/*.test.js"
+    ],
     "testTimeout": 30000
+  },
+  "dependencies": {
+    "acorn": "^8.18.0"
   }
 }
