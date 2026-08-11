@@ -11,7 +11,7 @@ describe('addition', () => {
     expect(addition(-1, -1)).toBe(-2);
   });
 
-  test('devrait gérer le zéro', () => {
-    expect(addition(5, 0)).toBe(5);
+  test('devrait gérer zéro', () => {
+    expect(addition(0, 5)).toBe(5);
   });
 });

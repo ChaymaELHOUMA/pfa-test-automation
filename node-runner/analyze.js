@@ -29,8 +29,6 @@ try {
   process.exit(1);
 }
 
-// ---- Extraction ----
-
 const fonctions = [];
 const routes = [];
 const branches = [];
@@ -63,8 +61,10 @@ function detecterRouteExpress(node) {
 
   const dernierArg = args[args.length - 1];
   let parametresHandler = [];
+  let ligneFin = node.loc.end.line;
   if (dernierArg && (dernierArg.type === "ArrowFunctionExpression" || dernierArg.type === "FunctionExpression")) {
     parametresHandler = extraireParametres(dernierArg.params);
+    ligneFin = dernierArg.loc.end.line;
   }
 
   return {
@@ -72,7 +72,8 @@ function detecterRouteExpress(node) {
     chemin,
     parametresHandler,
     nombreMiddlewares: args.length - 2 >= 0 ? args.length - 2 : 0,
-    ligne: node.loc.start.line
+    ligneDebut: node.loc.start.line,
+    ligneFin
   };
 }
 
@@ -101,7 +102,8 @@ walk.simple(ast, {
       nom: node.id ? node.id.name : "<anonyme>",
       type: "FunctionDeclaration",
       parametres: extraireParametres(node.params),
-      ligne: node.loc.start.line
+      ligneDebut: node.loc.start.line,
+      ligneFin: node.loc.end.line
     });
   },
 
@@ -112,7 +114,8 @@ walk.simple(ast, {
         nom: node.id.name,
         type: node.init.type,
         parametres: extraireParametres(node.init.params),
-        ligne: node.loc.start.line
+        ligneDebut: node.loc.start.line,
+        ligneFin: node.init.loc.end.line
       });
     }
   },
@@ -157,12 +160,67 @@ walk.simple(ast, {
   }
 });
 
+const unites = [];
+
+fonctions.forEach(f => {
+  unites.push({
+    type: "fonction",
+    nom: f.nom,
+    parametres: f.parametres,
+    ligneDebut: f.ligneDebut,
+    ligneFin: f.ligneFin,
+    branches: [],
+    casErreur: []
+  });
+});
+
+routes.forEach(r => {
+  unites.push({
+    type: "route",
+    nom: `${r.methode} ${r.chemin}`,
+    methode: r.methode,
+    chemin: r.chemin,
+    parametres: r.parametresHandler,
+    ligneDebut: r.ligneDebut,
+    ligneFin: r.ligneFin,
+    branches: [],
+    casErreur: []
+  });
+});
+
+function trouverUniteEnglobante(ligne) {
+  let meilleure = null;
+  for (const u of unites) {
+    if (ligne >= u.ligneDebut && ligne <= u.ligneFin) {
+      if (!meilleure || (u.ligneFin - u.ligneDebut) < (meilleure.ligneFin - meilleure.ligneDebut)) {
+        meilleure = u;
+      }
+    }
+  }
+  return meilleure;
+}
+
+const branchesHorsUnite = [];
+const casErreurHorsUnite = [];
+
+branches.forEach(b => {
+  const unite = trouverUniteEnglobante(b.ligne);
+  if (unite) unite.branches.push(b);
+  else branchesHorsUnite.push(b);
+});
+
+casErreur.forEach(e => {
+  const unite = trouverUniteEnglobante(e.ligne);
+  if (unite) unite.casErreur.push(e);
+  else casErreurHorsUnite.push(e);
+});
+
 const resume = {
   fichier: cheminFichier,
-  fonctions,
-  routes,
-  branches,
-  casErreur
+  unites,
+  ...(branchesHorsUnite.length > 0 || casErreurHorsUnite.length > 0
+    ? { horsUnite: { branches: branchesHorsUnite, casErreur: casErreurHorsUnite } }
+    : {})
 };
 
 console.log(JSON.stringify(resume));
