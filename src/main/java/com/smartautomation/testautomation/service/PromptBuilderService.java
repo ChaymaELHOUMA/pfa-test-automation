@@ -53,6 +53,27 @@ public class PromptBuilderService {
 
         return sb.toString();
     }
+    
+    public String construirePromptBrut(UniteTestable unite, String extraitCodeSource) {
+        StringBuilder sb = new StringBuilder();
+
+        if (unite.isRoute()) {
+            sb.append("Voici un handler de route Express : ")
+              .append(unite.getMethode()).append(" ").append(unite.getChemin()).append(".\n\n");
+        } else {
+            sb.append("Voici une fonction JavaScript nommee ").append(unite.getNom()).append(".\n\n");
+        }
+
+        sb.append("Code source :\n").append(extraitCodeSource).append("\n");
+        sb.append("Genere un test unitaire Jest pour ce code, couvrant au minimum le cas nominal.\n");
+        sb.append("IMPORTANT : le fichier de test doit etre autonome et directement executable. ");
+        sb.append("Inclus la definition complete de la fonction ou du handler directement dans le fichier de test ");
+        sb.append("(ne fais AUCUN require ni import vers un fichier externe, puisque ce fichier n'existe pas).\n");
+        sb.append("Reponds uniquement avec un bloc de code JavaScript delimite par ```javascript et ```, ");
+        sb.append("sans aucune explication avant ou apres le bloc.");
+
+        return sb.toString();
+    }
 
     private List<String> decrireCheminsACouvrir(UniteTestable unite) {
         List<String> chemins = new ArrayList<>();
@@ -85,4 +106,8 @@ public class PromptBuilderService {
 
         return chemins;
     }
+    public List<String> decrireCheminsACouvrirPublic(UniteTestable unite) {
+        return decrireCheminsACouvrir(unite);
+    }
+    
 }

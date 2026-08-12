@@ -14,7 +14,7 @@ import org.springframework.web.reactive.function.client.WebClientRequestExceptio
 import org.springframework.web.reactive.function.client.WebClientResponseException;
 
 import java.time.Duration;
-
+import java.util.concurrent.TimeoutException;
 
 @Service
 public class LlmService {
@@ -30,19 +30,50 @@ public class LlmService {
     @Value("${llm.api.timeout-seconds:20}")
     private long timeoutSeconds;
 
-    public LlmService(@Qualifier("llmWebClient") WebClient webClient, WebClientConfig webClientConfig) {
+    public LlmService(
+            @Qualifier("llmWebClient") WebClient webClient,
+            WebClientConfig webClientConfig) {
+
         this.webClient = webClient;
         this.webClientConfig = webClientConfig;
     }
 
-    
     public String genererTest(String nomFonction, String codeSource) {
         String prompt = construirePromptSimple(nomFonction, codeSource);
+        return genererDepuisPrompt(prompt);
+    }
+
+    private String construirePromptSimple(String nomFonction, String codeSource) {
+        return """
+                Voici une fonction JavaScript nommée %s :
+
+                %s
+
+                Génère un test unitaire Jest pour cette fonction, couvrant au minimum le cas nominal.
+
+                IMPORTANT :
+                - Le fichier de test doit être autonome et directement exécutable.
+                - Inclus la définition complète de la fonction directement dans le fichier de test.
+                - Ne fais AUCUN require ni import vers un fichier externe, puisque ce fichier n'existe pas.
+                - Utilise Jest.
+                - Retourne uniquement le code du test.
+
+                Réponds uniquement avec un bloc de code JavaScript délimité par
+                ```javascript
+                et
+                ```,
+                sans aucune explication avant ou après le bloc.
+                """.formatted(nomFonction, codeSource);
+    }
+
+    public String genererDepuisPrompt(String prompt) {
         LlmRequest requete = new LlmRequest(prompt);
 
-        
-        String uri = String.format("/v1beta/models/%s:generateContent?key=%s",
-                model, webClientConfig.getApiKey());
+        String uri = String.format(
+                "/v1beta/models/%s:generateContent?key=%s",
+                model,
+                webClientConfig.getApiKey()
+        );
 
         try {
             LlmResponse reponse = webClient.post()
@@ -53,43 +84,66 @@ public class LlmService {
                     .timeout(Duration.ofSeconds(timeoutSeconds))
                     .block();
 
-            if (reponse == null || reponse.getTexteComplet().isBlank()) {
-                throw new LlmCallException("Le LLM a renvoye une reponse vide");
+            if (reponse == null
+                    || reponse.getTexteComplet() == null
+                    || reponse.getTexteComplet().isBlank()) {
+
+                throw new LlmCallException(
+                        "Le LLM a renvoyé une réponse vide"
+                );
             }
 
             return reponse.getTexteComplet();
 
         } catch (WebClientResponseException e) {
-            log.error("Erreur HTTP {} lors de l'appel au LLM : {}", e.getStatusCode(), e.getResponseBodyAsString());
-            throw new LlmCallException("Erreur HTTP du LLM : " + e.getStatusCode(), e);
+
+            log.error(
+                    "Erreur HTTP {} lors de l'appel au LLM : {}",
+                    e.getStatusCode(),
+                    e.getResponseBodyAsString()
+            );
+
+            throw new LlmCallException(
+                    "Erreur HTTP du LLM : " + e.getStatusCode(),
+                    e
+            );
 
         } catch (WebClientRequestException e) {
-            log.error("Erreur reseau lors de l'appel au LLM", e);
-            throw new LlmCallException("Erreur reseau lors de l'appel au LLM : " + e.getMessage(), e);
+
+            log.error(
+                    "Erreur réseau lors de l'appel au LLM",
+                    e
+            );
+
+            throw new LlmCallException(
+                    "Erreur réseau lors de l'appel au LLM : " + e.getMessage(),
+                    e
+            );
 
         } catch (RuntimeException e) {
-            
-            if (e.getCause() instanceof java.util.concurrent.TimeoutException) {
-                log.error("Timeout ({}s) lors de l'appel au LLM", timeoutSeconds);
-                throw new LlmCallException("Timeout depasse lors de l'appel au LLM", e);
+
+            if (e.getCause() instanceof TimeoutException) {
+
+                log.error(
+                        "Timeout ({}s) lors de l'appel au LLM",
+                        timeoutSeconds
+                );
+
+                throw new LlmCallException(
+                        "Timeout dépassé lors de l'appel au LLM",
+                        e
+                );
             }
-            log.error("Erreur inattendue lors de l'appel au LLM", e);
-            throw new LlmCallException("Erreur inattendue lors de l'appel au LLM : " + e.getMessage(), e);
+
+            log.error(
+                    "Erreur inattendue lors de l'appel au LLM",
+                    e
+            );
+
+            throw new LlmCallException(
+                    "Erreur inattendue lors de l'appel au LLM : " + e.getMessage(),
+                    e
+            );
         }
-    }
-
-    private String construirePromptSimple(String nomFonction, String codeSource) {
-        return """
-                Voici une fonction JavaScript nommee %s :
-
-                %s
-
-                Genere un test unitaire Jest pour cette fonction, couvrant au minimum le cas nominal.
-                IMPORTANT : le fichier de test doit etre autonome et directement executable.
-                Inclus la definition complete de la fonction directement dans le fichier de test
-                (ne fais AUCUN require ni import vers un fichier externe, puisque ce fichier n'existe pas).
-                Reponds uniquement avec un bloc de code JavaScript delimite par ```javascript et ```,
-                sans aucune explication avant ou apres le bloc.
-                """.formatted(nomFonction, codeSource);
     }
 }
