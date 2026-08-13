@@ -20,12 +20,13 @@ public class TestCodeExtractor {
         }
 
         Matcher matcher = CODE_BLOCK_PATTERN.matcher(reponseLlm);
-        if (!matcher.find()) {
-            throw new TestGenerationException(
-                    "Aucun bloc de code delimite (```javascript ... ```) trouve dans la reponse du LLM");
+        String code;
+        if (matcher.find()) {
+            code = matcher.group(1).trim();
+        } else {
+            code = reponseLlm.trim();
         }
 
-        String code = matcher.group(1).trim();
         if (code.isEmpty()) {
             throw new TestGenerationException("Le bloc de code extrait est vide");
         }

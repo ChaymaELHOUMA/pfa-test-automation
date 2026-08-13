@@ -63,9 +63,9 @@ public class NodeBridgeService {
             if (!termineATemps) {
                 log.warn("Timeout depasse ({}s) pour le script {}, destruction forcee du process", customTimeoutSec, scriptPath);
                 process.destroyForcibly();
-                stdoutThread.interrupt();
-                stderrThread.interrupt();
-                return NodeExecutionResult.echecTimeout();
+                stdoutThread.join(2000);
+                stderrThread.join(2000);
+                return NodeExecutionResult.echecTimeout(stdoutBuffer.toString(), stderrBuffer.toString());
             }
 
             stdoutThread.join(2000);
@@ -120,9 +120,9 @@ public class NodeBridgeService {
             if (!finished) {
                 log.warn("Timeout depasse ({}s) pour la commande npx {}, destruction forcee du process", timeoutSec, Arrays.toString(args));
                 process.destroyForcibly();
-                outThread.interrupt();
-                errThread.interrupt();
-                return NodeExecutionResult.echecTimeout();
+                outThread.join(2000);
+                errThread.join(2000);
+                return NodeExecutionResult.echecTimeout(stdout.toString(), stderr.toString());
             }
 
             outThread.join(2000);

@@ -21,7 +21,11 @@ public class NodeExecutionResult {
     }
 
     public static NodeExecutionResult echecTimeout() {
-        return new NodeExecutionResult(false, "", "Timeout depasse : le process Node n'a pas repondu a temps", -1, true);
+        return echecTimeout("", "Timeout depasse : le process Node n'a pas repondu a temps");
+    }
+
+    public static NodeExecutionResult echecTimeout(String stdout, String stderr) {
+        return new NodeExecutionResult(false, stdout, stderr, -1, true);
     }
 
     public static NodeExecutionResult echecExitCode(String stdout, String stderr, int exitCode) {

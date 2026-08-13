@@ -22,6 +22,7 @@ public class PromptComparisonService {
 
     private static final Logger log = LoggerFactory.getLogger(PromptComparisonService.class);
     private static final Pattern PATTERN_NOMBRE_TESTS = Pattern.compile("(?m)^\\s*(test|it)\\s*\\(");
+    private static final Pattern PATTERN_NOM_TEST = Pattern.compile("(?m)^\\s*(?:test|it)\\s*\\(\\s*['\"]([^'\"]+)['\"]");
 
     @Value("${node.bridge.scripts-dir:node-runner}")
     private String scriptsDir;
@@ -118,13 +119,23 @@ public class PromptComparisonService {
     private int compterCheminsMentionnes(String codeGenere, List<String> cheminsAttendus) {
         if (codeGenere == null || codeGenere.isBlank()) return 0;
         String codeMinuscule = codeGenere.toLowerCase(Locale.ROOT);
+        List<String> nomsTests = extraireNomsTests(codeGenere);
         int count = 0;
         for (String chemin : cheminsAttendus) {
-            if (cheminEstCouvert(chemin, codeMinuscule)) {
+            if (cheminEstCouvert(chemin, codeMinuscule, nomsTests)) {
                 count++;
             }
         }
         return count;
+    }
+
+    private List<String> extraireNomsTests(String codeGenere) {
+        Matcher m = PATTERN_NOM_TEST.matcher(codeGenere);
+        List<String> noms = new java.util.ArrayList<>();
+        while (m.find()) {
+            noms.add(m.group(1).toLowerCase(Locale.ROOT));
+        }
+        return noms;
     }
 
     /**
@@ -133,22 +144,33 @@ public class PromptComparisonService {
      * les principaux types de chemins produits par PromptBuilderService.decrireCheminsACouvrir :
      * nominal, erreurs HTTP, switch, try/catch, throw, et branches if/else.
      */
-    private boolean cheminEstCouvert(String chemin, String codeMinuscule) {
+    private boolean cheminEstCouvert(String chemin, String codeMinuscule, List<String> nomsTests) {
         String cheminMinuscule = chemin.toLowerCase(Locale.ROOT);
 
-        // Cas d'erreur HTTP : le code (ex. 400, 404) doit apparaitre dans le code genere
+        // Cas d'erreur HTTP : nom de test "cas erreur" ou code HTTP present
         Matcher mHttp = Pattern.compile("\\b(\\d{3})\\b").matcher(chemin);
         if (mHttp.find()) {
-            return codeMinuscule.contains(mHttp.group(1));
+            String codeHttp = mHttp.group(1);
+            if (nomsTests.stream().anyMatch(n -> n.contains("cas erreur") && n.contains(codeHttp))) {
+                return true;
+            }
+            return codeMinuscule.contains(codeHttp);
         }
 
         // Cas nominal
         if (cheminMinuscule.contains("nominal")) {
+            if (nomsTests.stream().anyMatch(n -> n.contains("cas nominal"))) {
+                return true;
+            }
             return codeMinuscule.contains("nominal");
         }
 
-        // Cas d'un switch : recherche de mots-cles associes a un test de cas
+        // Cas d'un switch : tests "cas branche" ou references aux cases
         if (cheminMinuscule.contains("switch")) {
+            long testsBranche = nomsTests.stream().filter(n -> n.contains("cas branche")).count();
+            if (testsBranche >= 2) {
+                return true;
+            }
             return codeMinuscule.contains("switch")
                     || codeMinuscule.contains("case ")
                     || Pattern.compile("\\bcas\\s*\\d").matcher(codeMinuscule).find();
@@ -156,6 +178,9 @@ public class PromptComparisonService {
 
         // Exception levee dans un bloc try/catch
         if (cheminMinuscule.contains("try") || cheminMinuscule.contains("exception")) {
+            if (nomsTests.stream().anyMatch(n -> n.contains("cas erreur"))) {
+                return true;
+            }
             return codeMinuscule.contains("tothrow")
                     || codeMinuscule.contains(".rejects")
                     || codeMinuscule.contains("catch(");
@@ -163,6 +188,9 @@ public class PromptComparisonService {
 
         // Erreur explicitement levee via throw
         if (cheminMinuscule.contains("throw")) {
+            if (nomsTests.stream().anyMatch(n -> n.contains("cas erreur"))) {
+                return true;
+            }
             return codeMinuscule.contains("tothrow")
                     || codeMinuscule.contains(".rejects");
         }
@@ -170,10 +198,16 @@ public class PromptComparisonService {
         // Branche if vraie / fausse (else)
         if (cheminMinuscule.contains("condition if")) {
             if (cheminMinuscule.contains("fausse")) {
+                if (nomsTests.stream().anyMatch(n -> n.contains("cas branche") || n.contains("cas invalide"))) {
+                    return true;
+                }
                 return codeMinuscule.contains("else")
                         || codeMinuscule.contains("faux")
                         || codeMinuscule.contains("false")
                         || codeMinuscule.contains("invalide");
+            }
+            if (nomsTests.stream().anyMatch(n -> n.contains("cas nominal") || n.contains("cas branche"))) {
+                return true;
             }
             return codeMinuscule.contains("valide")
                     || codeMinuscule.contains("true")

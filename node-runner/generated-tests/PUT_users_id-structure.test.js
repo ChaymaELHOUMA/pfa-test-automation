@@ -1,7 +1,6 @@
 const express = require('express');
 const request = require('supertest');
 
-// Définition de l'application et de la route directement dans le fichier
 const app = express();
 app.use(express.json());
 
@@ -18,42 +17,46 @@ app.put('/users/:id', (req, res) => {
   }
 });
 
-// Tests Jest
-describe('PUT /users/:id', () => {
-  
-  test('devrait retourner 200 et le statut actif (cas nominal / switch actif)', async () => {
-    const response = await request(app)
-      .put('/users/1')
-      .send({ statut: 'actif' });
-    
-    expect(response.status).toBe(200);
-    expect(response.body).toEqual({ statut: 'actif' });
-  });
+test('cas nominal - devrait retourner le statut actif pour un input valide', async () => {
+  const response = await request(app).put('/users/1').send({ statut: 'actif' });
+  expect(response.status).toBe(200);
+  expect(response.body).toEqual({ statut: 'actif' });
+});
 
-  test('devrait retourner 200 et le statut inactif (cas switch inactif)', async () => {
-    const response = await request(app)
-      .put('/users/1')
-      .send({ statut: 'inactif' });
-    
-    expect(response.status).toBe(200);
-    expect(response.body).toEqual({ statut: 'inactif' });
-  });
+test('cas limite - devrait retourner erreur pour une chaine vide', async () => {
+  const response = await request(app).put('/users/1').send({ statut: '' });
+  expect(response.status).toBe(400);
+});
 
-  test('devrait retourner 400 pour un statut inconnu (cas switch default)', async () => {
-    const response = await request(app)
-      .put('/users/1')
-      .send({ statut: 'en-attente' });
-    
-    expect(response.status).toBe(400);
-    expect(response.body).toEqual({ error: 'Statut inconnu' });
-  });
+test('cas limite - devrait retourner erreur pour un objet vide', async () => {
+  const response = await request(app).put('/users/1').send({});
+  expect(response.status).toBe(400);
+});
 
-  test('devrait retourner 400 en cas de corps vide (cas switch default)', async () => {
-    const response = await request(app)
-      .put('/users/1')
-      .send({});
-    
-    expect(response.status).toBe(400);
-    expect(response.body).toEqual({ error: 'Statut inconnu' });
-  });
+test('cas invalide - devrait retourner erreur pour null', async () => {
+  const response = await request(app).put('/users/1').send({ statut: null });
+  expect(response.status).toBe(400);
+});
+
+test('cas branche - devrait executer le cas actif du switch', async () => {
+  const response = await request(app).put('/users/1').send({ statut: 'actif' });
+  expect(response.status).toBe(200);
+  expect(response.body.statut).toBe('actif');
+});
+
+test('cas branche - devrait executer le cas inactif du switch', async () => {
+  const response = await request(app).put('/users/1').send({ statut: 'inactif' });
+  expect(response.status).toBe(200);
+  expect(response.body.statut).toBe('inactif');
+});
+
+test('cas branche - devrait executer le cas default du switch', async () => {
+  const response = await request(app).put('/users/1').send({ statut: 'suspendu' });
+  expect(response.status).toBe(400);
+  expect(response.body.error).toBe('Statut inconnu');
+});
+
+test('cas erreur - devrait retourner 400 pour un statut inconnu', async () => {
+  const response = await request(app).put('/users/1').send({ statut: 'inconnu_xyz' });
+  expect(response.status).toBe(400);
 });

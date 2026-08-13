@@ -40,16 +40,32 @@ public class PromptBuilderService {
             sb.append("\n");
         }
 
-        sb.append("Genere des tests Jest");
+        sb.append("Genere PLUSIEURS tests unitaires Jest distincts");
         if (unite.isRoute()) {
             sb.append(" (avec Supertest si pertinent)");
         }
-        sb.append(" couvrant chacun des chemins listes ci-dessus.\n");
+        sb.append(", un test par categorie applicable :\n");
+        sb.append("- cas nominal : entree valide standard\n");
+        sb.append("- cas limite : 0, chaine vide, tableau vide, valeur maximale\n");
+        sb.append("- cas invalide : type incorrect, null/undefined\n");
+        sb.append("- cas branche : chaque branche if/else ou chaque case d'un switch\n");
+        sb.append("- cas erreur : chaque retour HTTP 4xx/5xx ou throw explicite\n\n");
+
+        sb.append("Tu dois generer un test dedie pour CHAQUE chemin liste ci-dessus.\n");
+        sb.append("Pour un switch, cree un test separe par case (default inclus).\n");
+        sb.append("Pour une erreur HTTP, verifie explicitement le code de statut dans le test.\n\n");
+
+        sb.append("Format de nommage OBLIGATOIRE (utilise exactement une de ces categories) :\n");
+        sb.append("test('cas nominal - <description>', () => { ... })\n");
+        sb.append("test('cas limite - <description>', () => { ... })\n");
+        sb.append("test('cas invalide - <description>', () => { ... })\n");
+        sb.append("test('cas branche - <description>', () => { ... })\n");
+        sb.append("test('cas erreur - <description>', () => { ... })\n\n");
+
         sb.append("IMPORTANT : le fichier de test doit etre autonome et directement executable. ");
         sb.append("Inclus la definition complete de la fonction ou du handler directement dans le fichier de test ");
         sb.append("(ne fais AUCUN require ni import vers un fichier externe, puisque ce fichier n'existe pas).\n");
-        sb.append("Reponds uniquement avec un bloc de code JavaScript delimite par ```javascript et ```, ");
-        sb.append("sans aucune explication avant ou apres le bloc.");
+        sb.append("Reponds uniquement avec du code Jest, sans texte explicatif ni balises markdown.");
 
         return sb.toString();
     }
@@ -65,12 +81,27 @@ public class PromptBuilderService {
         }
 
         sb.append("Code source :\n").append(extraitCodeSource).append("\n");
-        sb.append("Genere un test unitaire Jest pour ce code, couvrant au minimum le cas nominal.\n");
+        
+        sb.append("Genere PLUSIEURS tests unitaires Jest distincts pour ce code, un test par categorie applicable :\n");
+        sb.append("- cas nominal : entree valide standard\n");
+        sb.append("- cas limite : 0, chaine vide, tableau vide, valeur maximale\n");
+        sb.append("- cas invalide : type incorrect, null/undefined\n");
+        sb.append("- cas branche : chaque branche if/else ou chaque case d'un switch\n");
+        sb.append("- cas erreur : chaque retour HTTP 4xx/5xx ou throw explicite\n\n");
+        sb.append("Pour un switch, cree un test separe par case (default inclus).\n");
+        sb.append("Pour une erreur HTTP, verifie explicitement le code de statut dans le test.\n\n");
+
+        sb.append("Format de nommage OBLIGATOIRE (utilise exactement une de ces categories) :\n");
+        sb.append("test('cas nominal - <description>', () => { ... })\n");
+        sb.append("test('cas limite - <description>', () => { ... })\n");
+        sb.append("test('cas invalide - <description>', () => { ... })\n");
+        sb.append("test('cas branche - <description>', () => { ... })\n");
+        sb.append("test('cas erreur - <description>', () => { ... })\n\n");
+
         sb.append("IMPORTANT : le fichier de test doit etre autonome et directement executable. ");
         sb.append("Inclus la definition complete de la fonction ou du handler directement dans le fichier de test ");
         sb.append("(ne fais AUCUN require ni import vers un fichier externe, puisque ce fichier n'existe pas).\n");
-        sb.append("Reponds uniquement avec un bloc de code JavaScript delimite par ```javascript et ```, ");
-        sb.append("sans aucune explication avant ou apres le bloc.");
+        sb.append("Reponds uniquement avec du code Jest, sans texte explicatif ni balises markdown.");
 
         return sb.toString();
     }
