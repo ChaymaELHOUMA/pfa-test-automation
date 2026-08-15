@@ -62,9 +62,23 @@ public class PromptBuilderService {
         sb.append("test('cas branche - <description>', () => { ... })\n");
         sb.append("test('cas erreur - <description>', () => { ... })\n\n");
 
-        sb.append("IMPORTANT : le fichier de test doit etre autonome et directement executable. ");
-        sb.append("Inclus la definition complete de la fonction ou du handler directement dans le fichier de test ");
-        sb.append("(ne fais AUCUN require ni import vers un fichier externe, puisque ce fichier n'existe pas).\n");
+        if (unite.isRoute()) {
+            sb.append("IMPORTANT : Pour les routes Express, utilise OBLIGATOIREMENT Supertest avec l'application reelle. ");
+            sb.append("Importe l'application depuis projet-reference/app.js qui contient le router monté.\n");
+            sb.append("Exemple de syntaxe attendue :\n");
+            sb.append("const request = require('supertest');\n");
+            sb.append("const app = require('../projet-reference/app');\n");
+            sb.append("test('cas nominal - <description>', async () => {\n");
+            sb.append("  const response = await request(app).put('/users/1').send({ statut: 'actif' });\n");
+            sb.append("  expect(response.statusCode).toBe(200);\n");
+            sb.append("  expect(response.body).toEqual({ statut: 'actif' });\n");
+            sb.append("});\n");
+            sb.append("NE redéfinis PAS le handler dans le test, utilise l'app existante.\n");
+        } else {
+            sb.append("IMPORTANT : le fichier de test doit etre autonome et directement executable. ");
+            sb.append("Inclus la definition complete de la fonction directement dans le fichier de test ");
+            sb.append("(ne fais AUCUN require ni import vers un fichier externe, puisque ce fichier n'existe pas).\n");
+        }
         sb.append("Reponds uniquement avec du code Jest, sans texte explicatif ni balises markdown.");
 
         return sb.toString();
@@ -81,7 +95,7 @@ public class PromptBuilderService {
         }
 
         sb.append("Code source :\n").append(extraitCodeSource).append("\n");
-        
+
         sb.append("Genere PLUSIEURS tests unitaires Jest distincts pour ce code, un test par categorie applicable :\n");
         sb.append("- cas nominal : entree valide standard\n");
         sb.append("- cas limite : 0, chaine vide, tableau vide, valeur maximale\n");
@@ -98,9 +112,23 @@ public class PromptBuilderService {
         sb.append("test('cas branche - <description>', () => { ... })\n");
         sb.append("test('cas erreur - <description>', () => { ... })\n\n");
 
-        sb.append("IMPORTANT : le fichier de test doit etre autonome et directement executable. ");
-        sb.append("Inclus la definition complete de la fonction ou du handler directement dans le fichier de test ");
-        sb.append("(ne fais AUCUN require ni import vers un fichier externe, puisque ce fichier n'existe pas).\n");
+        if (unite.isRoute()) {
+            sb.append("IMPORTANT : Pour les routes Express, utilise OBLIGATOIREMENT Supertest avec l'application reelle. ");
+            sb.append("Importe l'application depuis projet-reference/app.js qui contient le router monté.\n");
+            sb.append("Exemple de syntaxe attendue :\n");
+            sb.append("const request = require('supertest');\n");
+            sb.append("const app = require('../projet-reference/app');\n");
+            sb.append("test('cas nominal - <description>', async () => {\n");
+            sb.append("  const response = await request(app).put('/users/1').send({ statut: 'actif' });\n");
+            sb.append("  expect(response.statusCode).toBe(200);\n");
+            sb.append("  expect(response.body).toEqual({ statut: 'actif' });\n");
+            sb.append("});\n");
+            sb.append("NE redéfinis PAS le handler dans le test, utilise l'app existante.\n");
+        } else {
+            sb.append("IMPORTANT : le fichier de test doit etre autonome et directement executable. ");
+            sb.append("Inclus la definition complete de la fonction directement dans le fichier de test ");
+            sb.append("(ne fais AUCUN require ni import vers un fichier externe, puisque ce fichier n'existe pas).\n");
+        }
         sb.append("Reponds uniquement avec du code Jest, sans texte explicatif ni balises markdown.");
 
         return sb.toString();

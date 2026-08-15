@@ -6,16 +6,20 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.smartautomation.testautomation.model.ExecutionTestResult;
 import com.smartautomation.testautomation.model.NodeExecutionResult;
+import com.smartautomation.testautomation.service.JestExecutionService;
 import com.smartautomation.testautomation.service.NodeBridgeService;
 
 @RestController
 public class BridgeTestController {
 
     private final NodeBridgeService nodeBridgeService;
+    private final JestExecutionService jestExecutionService;
 
-    public BridgeTestController(NodeBridgeService nodeBridgeService) {
+    public BridgeTestController(NodeBridgeService nodeBridgeService, JestExecutionService jestExecutionService) {
         this.nodeBridgeService = nodeBridgeService;
+        this.jestExecutionService = jestExecutionService;
     }
 
    
@@ -40,6 +44,13 @@ public class BridgeTestController {
 
         NodeExecutionResult result = nodeBridgeService.runScript(script);
         HttpStatus status = result.isSuccess() ? HttpStatus.OK : HttpStatus.INTERNAL_SERVER_ERROR;
+        return ResponseEntity.status(status).body(result);
+    }
+
+    @GetMapping("/test-bridge/jest")
+    public ResponseEntity<ExecutionTestResult> testJestExecution(@RequestParam String testFile) {
+        ExecutionTestResult result = jestExecutionService.executerTest(testFile);
+        HttpStatus status = result.isTousTestsReussis() ? HttpStatus.OK : HttpStatus.INTERNAL_SERVER_ERROR;
         return ResponseEntity.status(status).body(result);
     }
 }

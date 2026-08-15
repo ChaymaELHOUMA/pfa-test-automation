@@ -5,7 +5,7 @@ target/
 *.iml
 .vscode/
 .DS_Store
-generated-tests/*.test.js
+node-runner/generated-tests/*.test.js
 node_modules/
 
 .env
