@@ -45,9 +45,10 @@ public class PromptBuilderService {
             sb.append(" (avec Supertest si pertinent)");
         }
         sb.append(", un test par categorie applicable :\n");
-        sb.append("- cas nominal : entree valide standard\n");
-        sb.append("- cas limite : 0, chaine vide, tableau vide, valeur maximale\n");
-        sb.append("- cas invalide : type incorrect, null/undefined\n");
+        sb.append("- cas nominal : entree valide standard avec des donnees typiques\n");
+        sb.append("- cas limite (valeurs aux bornes) : tests avec des valeurs extremes comme 0, limites superieures/inferieures, chaines vides, tableaux vides\n");
+        sb.append("- cas invalide (types invalides) : comportement avec des types inattendus (ex: String au lieu de Number, Objet au lieu de Tableau)\n");
+        sb.append("- cas invalide (valeurs nulles) : comportement specifique pour null, undefined, ou parametres completement manquants\n");
         sb.append("- cas branche : chaque branche if/else ou chaque case d'un switch\n");
         sb.append("- cas erreur : chaque retour HTTP 4xx/5xx ou throw explicite\n\n");
 
@@ -97,9 +98,10 @@ public class PromptBuilderService {
         sb.append("Code source :\n").append(extraitCodeSource).append("\n");
 
         sb.append("Genere PLUSIEURS tests unitaires Jest distincts pour ce code, un test par categorie applicable :\n");
-        sb.append("- cas nominal : entree valide standard\n");
-        sb.append("- cas limite : 0, chaine vide, tableau vide, valeur maximale\n");
-        sb.append("- cas invalide : type incorrect, null/undefined\n");
+        sb.append("- cas nominal : entree valide standard avec des donnees typiques\n");
+        sb.append("- cas limite (valeurs aux bornes) : tests avec des valeurs extremes comme 0, limites superieures/inferieures, chaines vides, tableaux vides\n");
+        sb.append("- cas invalide (types invalides) : comportement avec des types inattendus (ex: String au lieu de Number, Objet au lieu de Tableau)\n");
+        sb.append("- cas invalide (valeurs nulles) : comportement specifique pour null, undefined, ou parametres completement manquants\n");
         sb.append("- cas branche : chaque branche if/else ou chaque case d'un switch\n");
         sb.append("- cas erreur : chaque retour HTTP 4xx/5xx ou throw explicite\n\n");
         sb.append("Pour un switch, cree un test separe par case (default inclus).\n");
