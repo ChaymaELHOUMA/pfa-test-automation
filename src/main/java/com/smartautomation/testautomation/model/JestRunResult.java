@@ -18,6 +18,12 @@ public class JestRunResult {
     @JsonProperty("numFailedTests")
     private int testsEchoues;
 
+    @JsonProperty("numFailedTestSuites")
+    private int suiteEchouees;
+
+    @JsonProperty("numRuntimeErrorTestSuites")
+    private int suiteErreursRuntime;
+
     private List<TestSuiteResult> testResults;
 
     public boolean isSuccess() {
@@ -52,6 +58,22 @@ public class JestRunResult {
         this.testsEchoues = testsEchoues;
     }
 
+    public int getSuiteEchouees() {
+        return suiteEchouees;
+    }
+
+    public void setSuiteEchouees(int suiteEchouees) {
+        this.suiteEchouees = suiteEchouees;
+    }
+
+    public int getSuiteErreursRuntime() {
+        return suiteErreursRuntime;
+    }
+
+    public void setSuiteErreursRuntime(int suiteErreursRuntime) {
+        this.suiteErreursRuntime = suiteErreursRuntime;
+    }
+
     public List<TestSuiteResult> getTestResults() {
         return testResults;
     }
@@ -64,6 +86,7 @@ public class JestRunResult {
     public static class TestSuiteResult {
         private String name;
         private String status;
+        private String message;
         private List<AssertionResult> assertionResults;
 
         public String getName() {
@@ -80,6 +103,14 @@ public class JestRunResult {
 
         public void setStatus(String status) {
             this.status = status;
+        }
+
+        public String getMessage() {
+            return message;
+        }
+
+        public void setMessage(String message) {
+            this.message = message;
         }
 
         public List<AssertionResult> getAssertionResults() {
