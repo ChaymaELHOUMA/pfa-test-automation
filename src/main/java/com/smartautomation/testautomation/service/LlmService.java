@@ -49,21 +49,26 @@ public class LlmService {
 
                 %s
 
-                Génère un test unitaire Jest pour cette fonction, couvrant au minimum le cas nominal.
+                Génère des tests unitaires Jest distincts pour cette fonction, couvrant le cas nominal, les cas limites (ex: 0, "", [], {}) et les cas d'erreur/invalides.
 
-                IMPORTANT :
-                - Le fichier de test doit être autonome et directement exécutable.
-                - Inclus la définition complète de la fonction directement dans le fichier de test.
-                - Ne fais AUCUN require ni import vers un fichier externe, puisque ce fichier n'existe pas.
-                - Utilise Jest.
-                - Retourne uniquement le code du test.
+                FORMAT DE NOMMAGE STRICTEMENT OBLIGATOIRE :
+                - test('cas nominal - <description>', () => { ... })
+                - test('cas limite - <description>', () => { ... })
+                - test('cas invalide - <description>', () => { ... })
+                - test('cas erreur - <description>', () => { ... })
+
+                CONSIGNES DE COMPILATION ET SYNTAXE JEST (TRÈS IMPORTANT) :
+                - Pour tester qu'une fonction synchrone lève une erreur (throw), enveloppe TOUJOURS l'appel dans une fonction fléchée : expect(() => %s(...)).toThrow();
+                - Le fichier de test doit être 100%% autonome et directement exécutable.
+                - Inclus la définition complète et exacte de la fonction directement en haut du fichier de test.
+                - Ne fais AUCUN require ni import vers un fichier externe.
 
                 Réponds uniquement avec un bloc de code JavaScript délimité par
                 ```javascript
                 et
                 ```,
                 sans aucune explication avant ou après le bloc.
-                """.formatted(nomFonction, codeSource);
+                """.formatted(nomFonction, codeSource, nomFonction);
     }
 
     public String genererDepuisPrompt(String prompt) {

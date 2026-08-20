@@ -23,10 +23,10 @@ public class PromptBuilderService {
               .append(", avec les parametres (").append(String.join(", ", unite.getParametres())).append(").\n\n");
         }
 
-        sb.append("Code source :\n").append(extraitCodeSource).append("\n");
+        sb.append("Code source :\n").append(extraitCodeSource).append("\n\n");
 
         List<String> chemins = decrireCheminsACouvrir(unite);
-        sb.append("Cette unite contient les chemins d'execution suivants, a couvrir chacun par un test :\n");
+        sb.append("Cette unite contient les chemins d'execution suivants, a couvrir chacun par un test dedie :\n");
         for (String c : chemins) {
             sb.append("- ").append(c).append("\n");
         }
@@ -36,30 +36,36 @@ public class PromptBuilderService {
 
         sb.append("Genere PLUSIEURS tests unitaires Jest distincts, un test par categorie applicable :\n");
         sb.append("- cas nominal : entree valide standard\n");
-        sb.append("- cas limite : 0, chaine vide, tableau vide, valeur maximale\n");
-        sb.append("- cas invalide : type incorrect, null/undefined\n");
-        sb.append("- cas branche : chaque branche if/else ou chaque case d'un switch\n");
-        sb.append("- cas erreur : chaque retour HTTP 4xx/5xx ou throw explicite\n\n");
+        sb.append("- cas limite : 0, chaine vide \"\", tableau vide [], objet vide {}, valeur maximale\n");
+        sb.append("- cas invalide : type incorrect, null, undefined, structure invalide\n");
+        sb.append("- cas branche : chaque branche if/else ou chaque case d'un switch (y compris default)\n");
+        sb.append("- cas erreur : chaque retour HTTP 4xx/5xx ou throw d'exception explicite\n\n");
 
         sb.append("Tu dois generer un test dedie pour CHAQUE chemin liste ci-dessus.\n");
         sb.append("Pour un switch, cree un test separe par case (default inclus).\n");
-        sb.append("Pour une erreur HTTP, verifie explicitement le code de statut dans le test.\n\n");
+        sb.append("Pour une erreur HTTP, verifie explicitement le code de statut et le message d'erreur.\n\n");
 
-        sb.append("Format de nommage OBLIGATOIRE (utilise exactement une de ces categories) :\n");
+        sb.append("FORMAT DE NOMMAGE STRICTEMENT OBLIGATOIRE (le nom du test doit COMMENCER EXACTEMENT par un de ces prefixe) :\n");
         sb.append("test('cas nominal - <description>', () => { ... })\n");
         sb.append("test('cas limite - <description>', () => { ... })\n");
         sb.append("test('cas invalide - <description>', () => { ... })\n");
         sb.append("test('cas branche - <description>', () => { ... })\n");
         sb.append("test('cas erreur - <description>', () => { ... })\n\n");
 
+        sb.append("CONSIGNES DE SYNTAXE ET COMPILATION JEST (TRES IMPORTANT) :\n");
+        sb.append("1. Pour tester qu'une fonction synchrone leve une erreur (throw), enveloppe TOUJOURS l'appel dans une fonction flechee : expect(() => maFonction(...)).toThrow();\n");
+        sb.append("2. Pour les fonctions asynchrones, utilise await expect(maFonctionAsync(...)).rejects.toThrow();\n");
+        sb.append("3. Assure-toi que toutes les variables et fonctions utilisees sont definies et accessibles.\n\n");
+
         if (unite.isRoute()) {
             ajouterInstructionsSupertest(sb, unite);
         } else {
-            sb.append("IMPORTANT : le fichier de test doit etre autonome et directement executable. ");
-            sb.append("Inclus la definition complete de la fonction directement dans le fichier de test ");
-            sb.append("(ne fais AUCUN require ni import vers un fichier externe, puisque ce fichier n'existe pas).\n");
+            sb.append("IMPORTANT POUR FONCTION STANDALONE :\n");
+            sb.append("Le fichier de test doit etre 100% autonome et directement executable.\n");
+            sb.append("Inclus la definition COMPLETE ET EXACTE de la fonction (et de toutes ses fonctions utilitaires) directement en haut du fichier de test.\n");
+            sb.append("Ne fais AUCUN require() ni import vers un fichier externe (ex: ne fais PAS require('./...')).\n\n");
         }
-        sb.append("Reponds uniquement avec du code Jest, sans texte explicatif ni balises markdown.");
+        sb.append("Reponds uniquement avec du code Jest valide entoure de ```javascript et ```, sans aucun texte explicatif avant ou apres.");
 
         return sb.toString();
     }
@@ -78,34 +84,37 @@ public class PromptBuilderService {
             sb.append("Voici une fonction JavaScript nommee ").append(unite.getNom()).append(".\n\n");
         }
 
-        sb.append("Code source :\n").append(extraitCodeSource).append("\n");
+        sb.append("Code source :\n").append(extraitCodeSource).append("\n\n");
 
         ajouterSectionTestsExistants(sb, testsExistants);
         
         sb.append("Genere PLUSIEURS tests unitaires Jest distincts pour ce code, un test par categorie applicable :\n");
         sb.append("- cas nominal : entree valide standard\n");
-        sb.append("- cas limite : 0, chaine vide, tableau vide, valeur maximale\n");
-        sb.append("- cas invalide : type incorrect, null/undefined\n");
-        sb.append("- cas branche : chaque branche if/else ou chaque case d'un switch\n");
+        sb.append("- cas limite : 0, chaine vide \"\", tableau vide [], objet vide {}\n");
+        sb.append("- cas invalide : type incorrect, null, undefined\n");
+        sb.append("- cas branche : chaque branche if/else ou chaque case d'un switch (y compris default)\n");
         sb.append("- cas erreur : chaque retour HTTP 4xx/5xx ou throw explicite\n\n");
-        sb.append("Pour un switch, cree un test separe par case (default inclus).\n");
-        sb.append("Pour une erreur HTTP, verifie explicitement le code de statut dans le test.\n\n");
 
-        sb.append("Format de nommage OBLIGATOIRE (utilise exactement une de ces categories) :\n");
+        sb.append("FORMAT DE NOMMAGE STRICTEMENT OBLIGATOIRE (le nom du test doit COMMENCER EXACTEMENT par un de ces prefixe) :\n");
         sb.append("test('cas nominal - <description>', () => { ... })\n");
         sb.append("test('cas limite - <description>', () => { ... })\n");
         sb.append("test('cas invalide - <description>', () => { ... })\n");
         sb.append("test('cas branche - <description>', () => { ... })\n");
         sb.append("test('cas erreur - <description>', () => { ... })\n\n");
 
+        sb.append("CONSIGNES DE SYNTAXE ET COMPILATION JEST (TRES IMPORTANT) :\n");
+        sb.append("1. Pour tester qu'une fonction synchrone leve une erreur (throw), enveloppe TOUJOURS l'appel dans une fonction flechee : expect(() => maFonction(...)).toThrow();\n");
+        sb.append("2. Pour les fonctions asynchrones, utilise await expect(maFonctionAsync(...)).rejects.toThrow();\n\n");
+
         if (unite.isRoute()) {
             ajouterInstructionsSupertest(sb, unite);
         } else {
-            sb.append("IMPORTANT : le fichier de test doit etre autonome et directement executable. ");
-            sb.append("Inclus la definition complete de la fonction directement dans le fichier de test ");
-            sb.append("(ne fais AUCUN require ni import vers un fichier externe, puisque ce fichier n'existe pas).\n");
+            sb.append("IMPORTANT POUR FONCTION STANDALONE :\n");
+            sb.append("Le fichier de test doit etre 100% autonome et directement executable.\n");
+            sb.append("Inclus la definition COMPLETE ET EXACTE de la fonction (et de toutes ses fonctions utilitaires) directement en haut du fichier de test.\n");
+            sb.append("Ne fais AUCUN require() ni import vers un fichier externe.\n\n");
         }
-        sb.append("Reponds uniquement avec du code Jest, sans texte explicatif ni balises markdown.");
+        sb.append("Reponds uniquement avec du code Jest valide entoure de ```javascript et ```, sans aucun texte explicatif avant ou apres.");
 
         return sb.toString();
     }
@@ -121,18 +130,18 @@ public class PromptBuilderService {
     }
 
     private void ajouterInstructionsSupertest(StringBuilder sb, UniteTestable unite) {
-        sb.append("IMPORTANT : ce handler est une route Express (req/res). ");
+        sb.append("IMPORTANT POUR ROUTE EXPRESS (SUPERTEST) :\n");
+        sb.append("Ce handler est une route Express (req/res).\n");
         sb.append("Utilise Supertest sur l'application Express COMPLETE — ne l'appelle PAS directement avec des objets req/res mockes.\n");
         sb.append("NE recree PAS une mini-app Express avec le handler copie/colle.\n");
-        sb.append("NE utilise PAS jest.mock(), jest.fn() ni aucun mock de service/repository/module interne ");
-        sb.append("(ex: utilisateurService, utilisateurRepository) : le handler delegue a des couches reelles.\n");
-        sb.append("Charge l'app montee depuis le projet de reference :\n");
+        sb.append("NE utilise PAS jest.mock(), jest.fn() ni aucun mock de service/repository/module interne.\n");
+        sb.append("CHEMINS DE REQUIRE STRICTEMENT OBLIGATOIRES DEPUIS generated-tests/ (copier exactement ces lignes) :\n");
+        sb.append("  const request = require('supertest');\n");
         sb.append("  const app = require('../projet-reference/app');\n");
-        sb.append("Reinitialise l'etat partage entre les tests si la route modifie des donnees :\n");
         sb.append("  const { reinitialiserEtat } = require('../projet-reference/utilisateurRepository');\n");
-        sb.append("  beforeEach(() => { reinitialiserEtat(); });\n");
-        sb.append("Chaque test unitaire couvre UN seul chemin/cas (nominal, branche, erreur...) via un appel HTTP Supertest.\n");
-        sb.append("Syntaxe attendue :\n");
+        sb.append("  beforeEach(() => { reinitialiserEtat(); });\n\n");
+        sb.append("INTERDIT : require('../app'), require('./app'), require('../utilisateurRepository').\n");
+        sb.append("Exemple de syntaxe attendue :\n");
         sb.append("const request = require('supertest');\n");
         sb.append("const app = require('../projet-reference/app');\n");
         sb.append("const { reinitialiserEtat } = require('../projet-reference/utilisateurRepository');\n");
@@ -150,7 +159,7 @@ public class PromptBuilderService {
           .append(exempleCheminSupertest(unite.getChemin())).append("').send({ ... });\n");
         sb.append("  expect(reponse.statusCode).toBe(400);\n");
         sb.append("});\n");
-        sb.append("Utilise async/await. Verifie statusCode (ou status) et response.body.\n\n");
+        sb.append("Utilise async/await pour chaque test HTTP Supertest. Verifie le statusCode (ou status) et response.body.\n\n");
     }
 
     private String exempleCheminSupertest(String chemin) {
@@ -192,10 +201,6 @@ public class PromptBuilderService {
         return decrireCheminsACouvrir(unite);
     }
 
-    /**
-     * Prompt dedie aux tests d'integration multi-couches (controleur + service + repository).
-     * Distinct des prompts unitaires brut/structure : ne remplace pas leur generation.
-     */
     public String construirePromptIntegration(UniteTestable unite, String extraitRoute, String contexteCouches) {
         return construirePromptIntegration(unite, extraitRoute, contexteCouches, List.of());
     }
@@ -206,11 +211,11 @@ public class PromptBuilderService {
         sb.append("Voici une route Express a tester en INTEGRATION (plusieurs couches) : ")
           .append(unite.getMethode()).append(" ").append(unite.getChemin()).append(".\n\n");
 
-        sb.append("Code du controleur (handler de route) :\n").append(extraitRoute).append("\n");
+        sb.append("Code du controleur (handler de route) :\n").append(extraitRoute).append("\n\n");
 
         if (contexteCouches != null && !contexteCouches.isBlank()) {
             sb.append("Couches sous-jacentes reelles (service, repository) — NE PAS MOCKER :\n");
-            sb.append(contexteCouches).append("\n");
+            sb.append(contexteCouches).append("\n\n");
         }
 
         ajouterSectionTestsExistants(sb, testsExistants);
@@ -224,12 +229,13 @@ public class PromptBuilderService {
         sb.append("    const { reinitialiserEtat } = require('../projet-reference/utilisateurRepository');\n");
         sb.append("  INTERDIT : require('../app'), require('./app'), require('../utilisateurRepository').\n");
         sb.append("- Verifie le code HTTP ET la structure du body de reponse.\n");
-        sb.append("- Si la route modifie un etat (ex: PUT), refais un GET (ou un second appel) pour confirmer ");
-        sb.append("que le changement a bien persiste dans la couche de donnees, pas seulement la reponse immediate.\n");
+        sb.append("- VERIFICATION DE PERSISTANCE : Si la route modifie un etat (ex: PUT, POST, DELETE), refais un GET (ou un second appel) pour confirmer ");
+        sb.append("que le changement a bien mepris effet et persiste dans la couche de donnees, pas seulement dans la reponse immediate.\n");
+        sb.append("- En cas d'erreur de validation (ex: statut invalide -> 400), refais aussi un GET pour verifier que les donnees n'ont PAS ete modifiees.\n");
         sb.append("- Reinitialise l'etat partage entre les tests si necessaire (ex: beforeEach avec reinitialiserEtat ");
         sb.append("du repository) pour garantir l'isolation.\n\n");
 
-        sb.append("Format de nommage OBLIGATOIRE (prefixe distinct des tests unitaires) :\n");
+        sb.append("FORMAT DE NOMMAGE STRICTEMENT OBLIGATOIRE (prefixe d'integration OBLIGATOIRE) :\n");
         sb.append("test('integration - <description>', async () => { ... })\n\n");
 
         sb.append("Syntaxe attendue (copier ces lignes require EXACTEMENT, sans modification) :\n");
@@ -247,11 +253,10 @@ public class PromptBuilderService {
         sb.append("  expect(reponseGet.body.statut).toBe(...);\n");
         sb.append("});\n\n");
 
-        sb.append("Genere au moins un test nominal (succes complet multi-couches) et un test d'erreur ");
+        sb.append("Genere au moins un test nominal (succes complet multi-couches avec verification GET) et un test d'erreur ");
         sb.append("si applicable (ex: statut invalide -> 400 sans modification de l'etat).\n");
-        sb.append("Reponds uniquement avec du code Jest, sans texte explicatif ni balises markdown.");
+        sb.append("Reponds uniquement avec du code Jest valide entoure de ```javascript et ```, sans aucun texte explicatif avant ou apres.");
 
         return sb.toString();
     }
-
 }
