@@ -42,7 +42,6 @@ describe('DELETE /users/:id', () => {
 
   // Cas explicite où l'erreur est levée (throw)
   test('devrait lever une erreur explicite', async () => {
-    const errorSpy = jest.spyOn(Error.prototype, 'message', 'get');
     const response = await request(app).delete('/users/undefined');
     expect(response.status).toBe(500);
     expect(response.body.error).toBe('ID manquant');
