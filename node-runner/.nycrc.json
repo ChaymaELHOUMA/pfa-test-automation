@@ -1,0 +1,20 @@
+{
+  "all": true,
+  "include": [
+    "projet-reference/**/*.js"
+  ],
+  "exclude": [
+    "**/node_modules/**",
+    "**/generated-tests/**",
+    "**/examples/**"
+  ],
+  "reporter": [
+    "text",
+    "text-summary",
+    "json-summary",
+    "lcov",
+    "html"
+  ],
+  "temp-dir": "./.nyc_output",
+  "report-dir": "./coverage"
+}

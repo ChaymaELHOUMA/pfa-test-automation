@@ -4,10 +4,13 @@
   "description": "Jest test runner for pfa-test-automation pipeline",
   "private": true,
   "scripts": {
-    "test": "jest"
+    "test": "jest",
+    "coverage": "jest --coverage",
+    "coverage:nyc": "nyc --reporter=text --reporter=json-summary jest"
   },
   "devDependencies": {
     "jest": "^29.7.0",
+    "nyc": "^18.0.0",
     "supertest": "^7.2.2"
   },
   "jest": {
@@ -15,6 +18,16 @@
     "testMatch": [
       "**/generated-tests/**/*.test.js",
       "**/examples/**/*.test.js"
+    ],
+    "collectCoverageFrom": [
+      "projet-reference/**/*.js"
+    ],
+    "coverageReporters": [
+      "text",
+      "text-summary",
+      "json-summary",
+      "lcov",
+      "html"
     ],
     "testTimeout": 30000
   },
