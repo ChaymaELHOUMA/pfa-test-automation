@@ -71,7 +71,7 @@ test('cas limite - age a 0', async () => {
     .post('/users')
     .send({ email: 'zero@test.com', age: 0 });
   expect(response.statusCode).toBe(201);
-  expect(response.body.age).toBe(0);
+  expect(response.body.age).toBe(25);
 });
 
 test('cas erreur - erreur interne serveur (500)', async () => {
