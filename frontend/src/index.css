@@ -1,0 +1,31 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    background-color: #F4F6FB;
+    color: #1E2761;
+    font-family: 'Inter', 'Calibri', system-ui, sans-serif;
+  }
+
+  h1, h2, h3, h4 {
+    font-family: 'Georgia', 'Playfair Display', serif;
+  }
+}
+
+/* Custom Scrollbar for Code Viewers and Terminals */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #141A43;
+}
+::-webkit-scrollbar-thumb {
+  background: #028090;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #00A896;
+}
