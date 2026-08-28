@@ -25,6 +25,7 @@ public class ProjectService {
             String nomProjet,
             String pointEntree,
             String repositoryFile,
+            String serviceFile,
             List<String> fichiers,
             Path workspacePath
     ) {}
@@ -45,6 +46,7 @@ public class ProjectService {
                 "Projet de Référence",
                 "app.js",
                 "utilisateurRepository.js",
+                "utilisateurService.js",
                 refFiles,
                 refWorkspace
         );
@@ -54,8 +56,8 @@ public class ProjectService {
 
     public void enregistrerProjet(ProjectMetadata metadata) {
         projectsMap.put(metadata.idProjet(), metadata);
-        log.info("Nouveau projet enregistré : id={}, nom={}, pointEntree={}, repository={}",
-                metadata.idProjet(), metadata.nomProjet(), metadata.pointEntree(), metadata.repositoryFile());
+        log.info("Nouveau projet enregistré : id={}, nom={}, pointEntree={}, repository={}, service={}",
+                metadata.idProjet(), metadata.nomProjet(), metadata.pointEntree(), metadata.repositoryFile(), metadata.serviceFile());
     }
 
     public ProjectMetadata getProjet(String idProjet) {
@@ -141,5 +143,40 @@ public class ProjectService {
         ProjectMetadata metadata = getProjet(idProjet);
         Path rel = Paths.get(scriptsDir).toAbsolutePath().normalize().relativize(metadata.workspacePath().toAbsolutePath().resolve(cheminRelatif).normalize());
         return rel.toString().replace('\\', '/');
+    }
+
+    public String construireContexteCouches(String idProjet, String cheminFichierRoute) throws IOException {
+        ProjectMetadata metadata = getProjet(idProjet);
+        
+        Path dossier = Paths.get(scriptsDir, cheminFichierRoute).getParent();
+        if (dossier == null) {
+            return "";
+        }
+        
+        StringBuilder sb = new StringBuilder();
+
+        // 1. Service
+        if (metadata.serviceFile() != null && !metadata.serviceFile().isBlank()) {
+            Path servicePath = dossier.resolve(metadata.serviceFile());
+            if (Files.exists(servicePath)) {
+                sb.append("--- Service (").append(servicePath.getFileName()).append(") ---")
+                  .append(System.lineSeparator());
+                sb.append(Files.readString(servicePath, java.nio.charset.StandardCharsets.UTF_8))
+                  .append(System.lineSeparator()).append(System.lineSeparator());
+            }
+        }
+
+        // 2. Repository
+        if (metadata.repositoryFile() != null && !metadata.repositoryFile().isBlank()) {
+            Path repoPath = dossier.resolve(metadata.repositoryFile());
+            if (Files.exists(repoPath)) {
+                sb.append("--- Repository (").append(repoPath.getFileName()).append(") ---")
+                  .append(System.lineSeparator());
+                sb.append(Files.readString(repoPath, java.nio.charset.StandardCharsets.UTF_8))
+                  .append(System.lineSeparator()).append(System.lineSeparator());
+            }
+        }
+          
+        return sb.toString();
     }
 }

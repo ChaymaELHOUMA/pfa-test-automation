@@ -58,11 +58,12 @@ export const apiService = {
     }
   },
 
-  uploadProjet: async (file: File, pointEntree: string, repositoryFile?: string, nomProjet?: string): Promise<ProjectMetadata> => {
+  uploadProjet: async (file: File, pointEntree: string, repositoryFile?: string, serviceFile?: string, nomProjet?: string): Promise<ProjectMetadata> => {
     const formData = new FormData();
     formData.append('file', file);
     formData.append('pointEntree', pointEntree);
     if (repositoryFile) formData.append('repositoryFile', repositoryFile);
+    if (serviceFile) formData.append('serviceFile', serviceFile);
     if (nomProjet) formData.append('nomProjet', nomProjet);
 
     const res = await axios.post<ProjectMetadata>(`${BASE_URL}/upload-projet`, formData, {
@@ -113,10 +114,15 @@ export const apiService = {
   },
 
   // 3. Génération & Exécution Ciblée
-  genererEtExecuterTest: async (nomFonction: string, codeSource: string, idProjet?: string): Promise<PipelineResult> => {
+  genererEtExecuterTest: async (
+    chemin: string,
+    nomUnite: string,
+    mode: 'structure' | 'brut' | 'integration' = 'structure',
+    idProjet?: string
+  ): Promise<PipelineResult> => {
     if (FORCE_MOCK_MODE) return MOCK_PIPELINE_RESULT;
     try {
-      const res = await client().post<PipelineResult>('/generer-et-executer-test', { nomFonction, codeSource, idProjet });
+      const res = await client().post<PipelineResult>('/generer-et-executer-test', { chemin, nomUnite, mode, idProjet });
       return res.data;
     } catch (err: any) {
       console.warn('API Call /generer-et-executer-test failed:', err);
@@ -142,6 +148,18 @@ export const apiService = {
       const res = await client().post<MultiTypeTestResult>('/executer-suite-tests', null, { params: { idProjet } });
       return res.data;
     } catch {
+      return MOCK_MULTI_TYPE_TEST_RESULT;
+    }
+  },
+
+  // Nouvelle méthode : Génération Multi-Type
+  genererSuiteMultiType: async (chemin: string, idProjet?: string): Promise<MultiTypeTestResult> => {
+    if (FORCE_MOCK_MODE) return MOCK_MULTI_TYPE_TEST_RESULT;
+    try {
+      const res = await client().post<MultiTypeTestResult>('/generer-suite-multi-type', null, { params: { chemin, idProjet } });
+      return res.data;
+    } catch (err: any) {
+      console.warn('API Call /generer-suite-multi-type failed:', err);
       return MOCK_MULTI_TYPE_TEST_RESULT;
     }
   },

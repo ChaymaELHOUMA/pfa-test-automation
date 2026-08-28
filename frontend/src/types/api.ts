@@ -3,6 +3,7 @@ export interface ProjectMetadata {
   nomProjet: string;
   pointEntree: string;
   repositoryFile?: string | null;
+  serviceFile?: string | null;
   fichiers: string[];
 }
 
@@ -44,8 +45,9 @@ export interface AstAnalysisOutcome {
 }
 
 export interface PipelineRequest {
-  nomFonction: string;
-  codeSource: string;
+  chemin: string;
+  nomUnite: string;
+  mode?: 'structure' | 'brut' | 'integration';
   idProjet?: string;
 }
 

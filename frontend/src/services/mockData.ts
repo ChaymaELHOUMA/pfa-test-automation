@@ -121,6 +121,7 @@ export const MOCK_PIPELINE_RESULT: PipelineResult = {
   etapeEnEchec: null,
   messageErreur: null,
   cheminFichierTest: 'node-runner/generated-tests/POST_users-structure.test.js',
+  codeTest: '// Mock test code\ntest(\'cas nominal - POST /users\', async () => { expect(true).toBe(true); });',
   totalTests: 9,
   testsReussis: 9,
   testsEchoues: 0

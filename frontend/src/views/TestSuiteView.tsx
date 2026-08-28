@@ -11,9 +11,10 @@ import {
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
 
 export const TestSuiteView: React.FC = () => {
-  const { activeProject } = useApp();
+  const { activeProject, currentFilePath } = useApp();
   const [suiteResult, setSuiteResult] = useState<MultiTypeTestResult | null>(null);
   const [loadingSuite, setLoadingSuite] = useState<boolean>(false);
+  const [generatingSuite, setGeneratingSuite] = useState<boolean>(false);
 
   const [categoryFilter, setCategoryFilter] = useState<string>('TOUS');
   const [statusFilter, setStatusFilter] = useState<string>('TOUS');
@@ -29,6 +30,22 @@ export const TestSuiteView: React.FC = () => {
   useEffect(() => {
     handleRunSuite();
   }, [activeProject]);
+
+  const handleGenerateSuite = async () => {
+    if (!currentFilePath) {
+      alert("Veuillez d'abord sélectionner un fichier source dans l'Étape 01.");
+      return;
+    }
+    setGeneratingSuite(true);
+    try {
+      const res = await apiService.genererSuiteMultiType(currentFilePath, activeProject.idProjet);
+      setSuiteResult(res);
+    } catch {
+      // Handled by apiService mock fallback
+    } finally {
+      setGeneratingSuite(false);
+    }
+  };
 
   const handleRunSuite = async () => {
     setLoadingSuite(true);
@@ -92,14 +109,25 @@ export const TestSuiteView: React.FC = () => {
             Exécutez la suite globale des tests générés pour le projet <strong>{activeProject.nomProjet}</strong>.
           </p>
         </div>
-        <button
-          onClick={handleRunSuite}
-          disabled={loadingSuite}
-          className="px-6 py-2.5 bg-[#00A896] hover:bg-[#009081] text-white font-semibold text-xs rounded-xl shadow-lg transition-all flex items-center justify-center gap-2 shrink-0 disabled:opacity-50"
-        >
-          <Play className="w-4 h-4 fill-white" />
-          <span>{loadingSuite ? 'Exécution...' : 'Exécuter toute la Suite (POST /executer-suite-tests)'}</span>
-        </button>
+        <div className="flex flex-col sm:flex-row gap-3">
+          <button
+            onClick={handleGenerateSuite}
+            disabled={generatingSuite || loadingSuite || !currentFilePath}
+            className="px-6 py-2.5 bg-slate-100 hover:bg-slate-200 text-[#1E2761] font-semibold text-xs rounded-xl shadow-lg transition-all flex items-center justify-center gap-2 shrink-0 disabled:opacity-50"
+            title={!currentFilePath ? "Sélectionnez un fichier source d'abord" : ""}
+          >
+            <Play className="w-4 h-4 fill-[#1E2761]" />
+            <span>{generatingSuite ? 'Génération...' : 'Générer la suite complète (multi-type)'}</span>
+          </button>
+          <button
+            onClick={handleRunSuite}
+            disabled={loadingSuite || generatingSuite}
+            className="px-6 py-2.5 bg-[#00A896] hover:bg-[#009081] text-white font-semibold text-xs rounded-xl shadow-lg transition-all flex items-center justify-center gap-2 shrink-0 disabled:opacity-50"
+          >
+            <Play className="w-4 h-4 fill-white" />
+            <span>{loadingSuite ? 'Exécution...' : 'Exécuter toute la Suite'}</span>
+          </button>
+        </div>
       </div>
 
       {/* Metrics & Distribution Chart */}

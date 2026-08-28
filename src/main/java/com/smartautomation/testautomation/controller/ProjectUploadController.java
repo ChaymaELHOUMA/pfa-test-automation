@@ -45,6 +45,7 @@ public class ProjectUploadController {
             @RequestParam("file") MultipartFile file,
             @RequestParam("pointEntree") String pointEntree,
             @RequestParam(value = "repositoryFile", required = false) String repositoryFile,
+            @RequestParam(value = "serviceFile", required = false) String serviceFile,
             @RequestParam(value = "nomProjet", required = false) String nomProjet
     ) {
         if (file.isEmpty()) {
@@ -88,6 +89,7 @@ public class ProjectUploadController {
                     nomFinal,
                     pointEntree,
                     (repositoryFile != null && !repositoryFile.isBlank()) ? repositoryFile : null,
+                    (serviceFile != null && !serviceFile.isBlank()) ? serviceFile : null,
                     fichiers,
                     workspacePath
             );

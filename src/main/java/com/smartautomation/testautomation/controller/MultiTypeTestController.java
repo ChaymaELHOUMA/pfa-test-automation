@@ -12,9 +12,13 @@ import org.springframework.web.bind.annotation.RestController;
 public class MultiTypeTestController {
 
     private final MultiTypeTestExecutionService executionService;
+    private final com.smartautomation.testautomation.service.MultiTypeGenerationService generationService;
 
-    public MultiTypeTestController(MultiTypeTestExecutionService executionService) {
+    public MultiTypeTestController(
+            MultiTypeTestExecutionService executionService,
+            com.smartautomation.testautomation.service.MultiTypeGenerationService generationService) {
         this.executionService = executionService;
+        this.generationService = generationService;
     }
 
     @PostMapping("/executer-suite-tests")
@@ -32,6 +36,14 @@ public class MultiTypeTestController {
         MultiTypeTestResult resultat = (idProjet == null || idProjet.isBlank() || "projet-reference".equals(idProjet))
                 ? executionService.executerEtConsoliderSuite()
                 : executionService.executerEtConsoliderSuite(idProjet);
+        return ResponseEntity.ok(resultat);
+    }
+
+    @PostMapping("/generer-suite-multi-type")
+    public ResponseEntity<MultiTypeTestResult> genererSuiteMultiType(
+            @RequestParam String chemin,
+            @RequestParam(required = false) String idProjet) {
+        MultiTypeTestResult resultat = generationService.genererSuiteMultiType(chemin, idProjet);
         return ResponseEntity.ok(resultat);
     }
 }

@@ -20,6 +20,7 @@ export const UploadProjectView: React.FC = () => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [pointEntree, setPointEntree] = useState<string>('app.js');
   const [repositoryFile, setRepositoryFile] = useState<string>('');
+  const [serviceFile, setServiceFile] = useState<string>('');
   const [nomProjet, setNomProjet] = useState<string>('');
   const [uploading, setUploading] = useState<boolean>(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -65,11 +66,14 @@ export const UploadProjectView: React.FC = () => {
     setSuccessMsg(null);
 
     try {
-      const proj = await uploadProject(selectedFile, pointEntree.trim(), repositoryFile.trim() || undefined, nomProjet.trim() || undefined);
-      setSuccessMsg(`Projet "${proj.nomProjet}" importé et configuré avec succès !`);
-      setSelectedFile(null);
+      await uploadProject(selectedFile, pointEntree, repositoryFile, serviceFile, nomProjet);
+      setSuccessMsg('Projet importé et analysé avec succès !');
+      setTimeout(() => {
+        setActiveTab('dashboard');
+      }, 1500);
     } catch (err: any) {
-      setErrorMsg(err.response?.data?.erreur || err.message || 'Erreur lors de l\'importation du projet.');
+      console.error(err);
+      setErrorMsg(err.response?.data?.erreur || 'Une erreur est survenue lors de l\'upload du projet.');
     } finally {
       setUploading(false);
     }
@@ -142,46 +146,25 @@ export const UploadProjectView: React.FC = () => {
               </div>
             </div>
 
-            {/* Point d'Entrée & Repository Inputs */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-bold text-[#1E2761] uppercase tracking-wider mb-1.5">
-                  Point d'Entrée Principal <span className="text-red-500">*</span>
-                </label>
-                <div className="relative">
-                  <FileCode className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
-                  <input
-                    type="text"
-                    value={pointEntree}
-                    onChange={(e) => setPointEntree(e.target.value)}
-                    className="w-full pl-9 pr-3 py-2 bg-[#F4F6FB] border border-slate-300 rounded-xl text-xs text-slate-800 font-mono focus:outline-none focus:border-[#00A896]"
-                    placeholder="ex. app.js ou src/app.js"
-                    required
-                  />
-                </div>
-                <span className="text-[10px] text-slate-500 mt-1 block">
-                  Fichier qui exporte l'application Express (<code>app</code>).
-                </span>
+            {/* Point d'Entrée */}
+            <div>
+              <label className="block text-xs font-bold text-[#1E2761] uppercase tracking-wider mb-1.5">
+                Point d'Entrée Principal <span className="text-red-500">*</span>
+              </label>
+              <div className="relative">
+                <FileCode className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+                <input
+                  type="text"
+                  value={pointEntree}
+                  onChange={(e) => setPointEntree(e.target.value)}
+                  className="w-full pl-9 pr-3 py-2 bg-[#F4F6FB] border border-slate-300 rounded-xl text-xs text-slate-800 font-mono focus:outline-none focus:border-[#00A896]"
+                  placeholder="ex. app.js ou src/app.js"
+                  required
+                />
               </div>
-
-              <div>
-                <label className="block text-xs font-bold text-[#1E2761] uppercase tracking-wider mb-1.5">
-                  Fichier Repository (Optionnel)
-                </label>
-                <div className="relative">
-                  <FileText className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
-                  <input
-                    type="text"
-                    value={repositoryFile}
-                    onChange={(e) => setRepositoryFile(e.target.value)}
-                    className="w-full pl-9 pr-3 py-2 bg-[#F4F6FB] border border-slate-300 rounded-xl text-xs text-slate-800 font-mono focus:outline-none focus:border-[#00A896]"
-                    placeholder="ex. utilisateurRepository.js"
-                  />
-                </div>
-                <span className="text-[10px] text-slate-500 mt-1 block">
-                  Laissez vide si le projet n'a pas de couche repository.
-                </span>
-              </div>
+              <span className="text-[10px] text-slate-500 mt-1 block">
+                Fichier qui exporte l'application Express (<code>app</code>).
+              </span>
             </div>
 
             {/* Nom du projet */}
@@ -229,7 +212,7 @@ export const UploadProjectView: React.FC = () => {
                 <CheckCircle2 className="w-4 h-4 text-[#00A896]" />
                 <span>Projet Actuel en Mémoire</span>
               </h3>
-              <Badge variant="status">ACTIF</Badge>
+              <Badge variant="info">ACTIF</Badge>
             </div>
 
             <div className="p-4 bg-[#F4F6FB] rounded-xl border border-slate-200 space-y-2">

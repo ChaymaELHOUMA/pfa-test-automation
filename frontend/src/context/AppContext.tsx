@@ -35,7 +35,7 @@ interface AppContextType {
   setActiveProject: (proj: ProjectMetadata) => void;
   availableProjects: ProjectMetadata[];
   refreshProjects: () => Promise<void>;
-  uploadProject: (file: File, pointEntree: string, repositoryFile?: string, nomProjet?: string) => Promise<ProjectMetadata>;
+  uploadProject: (file: File, pointEntree: string, repositoryFile?: string, serviceFile?: string, nomProjet?: string) => Promise<ProjectMetadata>;
   astOutcome: AstAnalysisOutcome | null;
   setAstOutcome: (outcome: AstAnalysisOutcome | null) => void;
   currentFilePath: string;
@@ -124,8 +124,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   };
 
-  const uploadProject = async (file: File, pointEntree: string, repositoryFile?: string, nomProjet?: string): Promise<ProjectMetadata> => {
-    const nouveauProjet = await apiService.uploadProjet(file, pointEntree, repositoryFile, nomProjet);
+  const uploadProject = async (file: File, pointEntree: string, repositoryFile?: string, serviceFile?: string, nomProjet?: string): Promise<ProjectMetadata> => {
+    const nouveauProjet = await apiService.uploadProjet(file, pointEntree, repositoryFile, serviceFile, nomProjet);
     await refreshProjects();
     setActiveProject(nouveauProjet);
     return nouveauProjet;

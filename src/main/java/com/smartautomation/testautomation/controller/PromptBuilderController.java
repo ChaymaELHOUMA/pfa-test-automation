@@ -74,7 +74,7 @@ public class PromptBuilderController {
                     if (!unite.isRoute()) {
                         yield null;
                     }
-                    String contexteCouches = construireContexteCouches(cheminResolu);
+                    String contexteCouches = projectService.construireContexteCouches(idProjet, cheminResolu);
                     yield promptBuilderService.construirePromptIntegration(unite, extrait, contexteCouches, existants, idProjet);
                 }
                 default -> promptBuilderService.construirePromptCible(unite, extrait, existants, idProjet);
@@ -91,27 +91,5 @@ public class PromptBuilderController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(Map.of("erreur", "Impossible de lire le fichier source : " + e.getMessage()));
         }
-    }
-
-    private String construireContexteCouches(String cheminFichierRoute) throws IOException {
-        java.nio.file.Path dossier = java.nio.file.Path.of(scriptsDir, cheminFichierRoute).getParent();
-        if (dossier == null) {
-            return "";
-        }
-
-        StringBuilder sb = new StringBuilder();
-        ajouterFichierSiPresent(sb, dossier.resolve("utilisateurService.js"), "Service");
-        ajouterFichierSiPresent(sb, dossier.resolve("utilisateurRepository.js"), "Repository");
-        return sb.toString();
-    }
-
-    private void ajouterFichierSiPresent(StringBuilder sb, java.nio.file.Path fichier, String etiquette) throws IOException {
-        if (!java.nio.file.Files.exists(fichier)) {
-            return;
-        }
-        sb.append("--- ").append(etiquette).append(" (").append(fichier.getFileName()).append(") ---")
-          .append(System.lineSeparator());
-        sb.append(java.nio.file.Files.readString(fichier, java.nio.charset.StandardCharsets.UTF_8))
-          .append(System.lineSeparator()).append(System.lineSeparator());
     }
 }

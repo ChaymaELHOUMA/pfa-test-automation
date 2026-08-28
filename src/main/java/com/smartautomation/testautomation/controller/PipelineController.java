@@ -27,8 +27,9 @@ public class PipelineController {
     @PostMapping("/generer-et-executer-test")
     public ResponseEntity<PipelineResult> genererEtExecuter(@RequestBody @Validated PipelineRequest requete) {
         String idProjet = (requete.idProjet() != null && !requete.idProjet().isBlank()) ? requete.idProjet() : "projet-reference";
+        String mode = (requete.mode() != null && !requete.mode().isBlank()) ? requete.mode() : "structure";
         PipelineResult resultat = pipelineService.genererEcrireEtExecuter(
-                requete.nomFonction(), requete.codeSource(), idProjet);
+                requete.chemin(), requete.nomUnite(), mode, idProjet);
 
         if (!resultat.isSucces()) {
             return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(resultat);
@@ -55,8 +56,9 @@ public class PipelineController {
     }
 
     public record PipelineRequest(
-            @NotBlank(message = "nomFonction est requis") String nomFonction,
-            @NotBlank(message = "codeSource est requis") String codeSource,
+            @NotBlank(message = "chemin est requis") String chemin,
+            @NotBlank(message = "nomUnite est requis") String nomUnite,
+            String mode,
             String idProjet
     ) {
     }

@@ -83,7 +83,7 @@ export const GenerationView: React.FC = () => {
       await new Promise(r => setTimeout(r, 1000));
       setLogs(prev => [...prev, `[00:08] 📥 Code de test généré. Validation syntaxique...`]);
 
-      const res = await apiService.genererEtExecuterTest(selectedNomUnite, currentFilePath, activeProject.idProjet);
+      const res = await apiService.genererEtExecuterTest(currentFilePath, selectedNomUnite, mode, activeProject.idProjet);
 
       setLogs(prev => [...prev, `[00:10] 🧪 Lancement du runner Jest dans le workspace...`]);
 

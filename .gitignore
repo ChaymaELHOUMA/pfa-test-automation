@@ -12,3 +12,10 @@ node_modules/
 .github/modernize/
 frontend/node_modules/
 frontend/node-runner/
+
+# Projets uploadés et extraits
+node-runner/workspaces/
+
+# Ignorer tout le contenu des tests générés (fichiers et sous-dossiers par projet)
+node-runner/generated-tests/*
+!node-runner/generated-tests/.gitkeep
