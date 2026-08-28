@@ -13,9 +13,17 @@ node_modules/
 frontend/node_modules/
 frontend/node-runner/
 
-# Projets uploadés et extraits
+# Projets uploadï¿½s et extraits
 node-runner/workspaces/
 
-# Ignorer tout le contenu des tests générés (fichiers et sous-dossiers par projet)
+# Ignorer tout le contenu des tests gï¿½nï¿½rï¿½s (fichiers et sous-dossiers par projet)
 node-runner/generated-tests/*
 !node-runner/generated-tests/.gitkeep
+
+
+# Dossiers temporaires et rapports de node-runner
+node-runner/node_modules/
+node-runner/.stryker-tmp/
+node-runner/reports/
+node-runner/coverage/
+node-runner/*-brut.txt
