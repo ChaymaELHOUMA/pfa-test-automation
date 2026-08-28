@@ -3,10 +3,7 @@ package com.smartautomation.testautomation.controller;
 import com.smartautomation.testautomation.model.MutationResult;
 import com.smartautomation.testautomation.service.MutationTestingService;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/mutation")
@@ -20,7 +17,16 @@ public class StrykerController {
 
     @GetMapping("/projet-reference")
     public ResponseEntity<MutationResult> obtenirMutationProjetReference() {
-        MutationResult result = mutationTestingService.executerMutationTesting();
+        MutationResult result = mutationTestingService.executerMutationTesting("projet-reference");
+        if (!result.isSucces()) {
+            return ResponseEntity.internalServerError().body(result);
+        }
+        return ResponseEntity.ok(result);
+    }
+
+    @GetMapping("/{idProjet}")
+    public ResponseEntity<MutationResult> obtenirMutationProjet(@PathVariable String idProjet) {
+        MutationResult result = mutationTestingService.executerMutationTesting(idProjet);
         if (!result.isSucces()) {
             return ResponseEntity.internalServerError().body(result);
         }
@@ -28,8 +34,9 @@ public class StrykerController {
     }
 
     @PostMapping("/lancer")
-    public ResponseEntity<MutationResult> lancerCampagneMutation() {
-        MutationResult result = mutationTestingService.executerMutationTesting();
+    public ResponseEntity<MutationResult> lancerCampagneMutation(
+            @RequestParam(required = false, defaultValue = "projet-reference") String idProjet) {
+        MutationResult result = mutationTestingService.executerMutationTesting(idProjet);
         if (!result.isSucces()) {
             return ResponseEntity.internalServerError().body(result);
         }

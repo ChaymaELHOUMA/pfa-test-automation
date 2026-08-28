@@ -26,7 +26,8 @@ public class MutationTestingService {
     private final NodeBridgeService nodeBridgeService;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
-    @Value("${stryker.execution.timeout-seconds:180}")
+    /** Timeout spécifique et élevé pour la campagne de mutation Stryker (par défaut 300s / 5min) */
+    @Value("${stryker.execution.timeout-seconds:300}")
     private long timeoutSeconds;
 
     @Value("${node.bridge.scripts-dir:node-runner}")
@@ -37,19 +38,48 @@ public class MutationTestingService {
     }
 
     public MutationResult executerMutationTesting() {
-        log.info("Lancement de la campagne de Mutation Testing (Stryker Mutator)...");
+        return executerMutationTesting("projet-reference");
+    }
 
-        NodeExecutionResult result = nodeBridgeService.runNpxCommand(
-                timeoutSeconds,
-                "stryker", "run"
-        );
+    public MutationResult executerMutationTesting(String idProjet) {
+        log.info("Lancement de la campagne de Mutation Testing (Stryker Mutator) pour le projet '{}' avec un timeout de {}s...", idProjet, timeoutSeconds);
+
+        NodeExecutionResult result;
+        if ("projet-reference".equals(idProjet) || idProjet == null || idProjet.isBlank()) {
+            result = nodeBridgeService.runNpxCommand(
+                    timeoutSeconds,
+                    "stryker", "run"
+            );
+        } else {
+            Path customConfig = Paths.get(scriptsDir, "workspaces", idProjet, "stryker.config.json");
+            if (java.nio.file.Files.exists(customConfig)) {
+                result = nodeBridgeService.runNpxCommand(
+                        timeoutSeconds,
+                        "stryker", "run", "workspaces/" + idProjet + "/stryker.config.json"
+                );
+            } else {
+                result = nodeBridgeService.runNpxCommand(
+                        timeoutSeconds,
+                        "stryker", "run"
+                );
+            }
+        }
 
         if (result.isTimedOut()) {
             log.warn("Timeout dépassé lors de la campagne de mutation testing ({}s)", timeoutSeconds);
             return MutationResult.erreur("Timeout dépassé lors de l'exécution de Stryker (" + timeoutSeconds + "s)");
         }
 
-        File reportFile = new File(scriptsDir, "reports/mutation/mutation.json");
+        File reportFile;
+        if ("projet-reference".equals(idProjet) || idProjet == null || idProjet.isBlank()) {
+            reportFile = new File(scriptsDir, "reports/mutation/mutation.json");
+        } else {
+            reportFile = new File(scriptsDir, "workspaces/" + idProjet + "/reports/mutation/mutation.json");
+            if (!reportFile.exists()) {
+                reportFile = new File(scriptsDir, "reports/mutation/mutation.json");
+            }
+        }
+
         if (!reportFile.exists()) {
             log.error("Fichier de rapport Stryker introuvable : {}", reportFile.getAbsolutePath());
             return MutationResult.erreur("Rapport Stryker mutation.json non produit. stderr: " + result.getStderr());

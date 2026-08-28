@@ -12,7 +12,6 @@ import com.smartautomation.testautomation.service.GenerationTestService;
 
 import jakarta.validation.constraints.NotBlank;
 
-
 @RestController
 @Validated
 public class GenerationTestController {
@@ -25,8 +24,9 @@ public class GenerationTestController {
 
     @PostMapping("/generer-test")
     public ResponseEntity<ResultatGeneration> genererTest(@RequestBody @Validated GenererTestRequest requete) {
+        String idProjet = (requete.idProjet() != null && !requete.idProjet().isBlank()) ? requete.idProjet() : "projet-reference";
         ResultatGeneration resultat = generationTestService.genererEtSauvegarder(
-                requete.nomFonction(), requete.codeSource());
+                requete.nomFonction(), requete.codeSource(), idProjet);
 
         if (!resultat.isSucces()) {
             return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(resultat);
@@ -36,7 +36,8 @@ public class GenerationTestController {
 
     public record GenererTestRequest(
             @NotBlank(message = "nomFonction est requis") String nomFonction,
-            @NotBlank(message = "codeSource est requis") String codeSource
+            @NotBlank(message = "codeSource est requis") String codeSource,
+            String idProjet
     ) {
     }
 }

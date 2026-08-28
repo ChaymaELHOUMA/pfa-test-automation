@@ -13,10 +13,13 @@ import static org.junit.jupiter.api.Assertions.*;
 public class PromptBuilderServiceTest {
 
     private PromptBuilderService promptBuilderService;
+    private ProjectService projectService;
 
     @BeforeEach
     public void setUp() {
-        promptBuilderService = new PromptBuilderService();
+        projectService = new ProjectService();
+        projectService.init();
+        promptBuilderService = new PromptBuilderService(projectService);
     }
 
     @Test

@@ -33,8 +33,12 @@ public class PipelineService {
     }
 
     public PipelineResult genererEcrireEtExecuter(String nomFonction, String codeSource) {
+        return genererEcrireEtExecuter(nomFonction, codeSource, "projet-reference");
+    }
 
-        
+    public PipelineResult genererEcrireEtExecuter(String nomFonction, String codeSource, String idProjet) {
+        String projetIdFinal = (idProjet != null && !idProjet.isBlank()) ? idProjet : "projet-reference";
+
         String reponseLlm;
         try {
             reponseLlm = llmService.genererTest(nomFonction, codeSource);
@@ -43,7 +47,6 @@ public class PipelineService {
             return PipelineResult.echecGeneration("Erreur LLM : " + e.getMessage());
         }
 
-        
         String codeTest;
         try {
             codeTest = extractor.extraireCode(reponseLlm);
@@ -52,31 +55,35 @@ public class PipelineService {
             return PipelineResult.echecGeneration("Reponse LLM invalide : " + e.getMessage());
         }
 
-        
         Path fichier;
         try {
-            fichier = fileWriter.ecrireFichierTest(nomFonction, codeTest);
+            fichier = "projet-reference".equals(projetIdFinal)
+                    ? fileWriter.ecrireFichierTest(nomFonction, codeTest)
+                    : fileWriter.ecrireFichierTest(nomFonction, codeTest, projetIdFinal);
         } catch (IOException e) {
             log.error("Erreur d'ecriture du fichier de test pour {}", nomFonction, e);
             return PipelineResult.echecGeneration("Erreur ecriture fichier : " + e.getMessage());
         }
 
-       
-        String cheminRelatif = fileWriter.cheminRelatifPourJest(nomFonction);
+        String cheminRelatif = "projet-reference".equals(projetIdFinal)
+                ? fileWriter.cheminRelatifPourJest(nomFonction)
+                : fileWriter.cheminRelatifPourJest(nomFonction, projetIdFinal);
+
         ExecutionTestResult resultatExecution = jestExecutionService.executerTest(cheminRelatif);
 
         if (resultatExecution.isErreurTechnique()) {
             log.error("Erreur technique lors de l'execution du test {} : {}",
                     fichier, resultatExecution.getMessageErreurTechnique());
-            return PipelineResult.echecExecution(fichier.toString(), resultatExecution.getMessageErreurTechnique());
+            return PipelineResult.echecExecution(fichier.toString(), codeTest, resultatExecution.getMessageErreurTechnique());
         }
 
         JestRunResult resultatJest = resultatExecution.getResultatJest();
-        log.info("Pipeline complet pour {} : {}/{} tests reussis",
-                nomFonction, resultatJest.getTestsReussis(), resultatJest.getTotalTests());
+        log.info("Pipeline complet pour {} sur projet {} : {}/{} tests reussis",
+                nomFonction, projetIdFinal, resultatJest.getTestsReussis(), resultatJest.getTotalTests());
 
         return PipelineResult.succes(
                 fichier.toString(),
+                codeTest,
                 resultatJest.getTotalTests(),
                 resultatJest.getTestsReussis(),
                 resultatJest.getTestsEchoues()

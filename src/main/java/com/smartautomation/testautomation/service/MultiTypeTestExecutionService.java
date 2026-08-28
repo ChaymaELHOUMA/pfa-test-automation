@@ -34,7 +34,15 @@ public class MultiTypeTestExecutionService {
     }
 
     public MultiTypeTestResult executerEtConsoliderSuite() {
-        Path dossierTests = Path.of(scriptsDir, outputSubdir);
+        return executerEtConsoliderSuite("projet-reference");
+    }
+
+    public MultiTypeTestResult executerEtConsoliderSuite(String idProjet) {
+        String projetIdFinal = (idProjet != null && !idProjet.isBlank()) ? idProjet : "projet-reference";
+        Path dossierTests = "projet-reference".equals(projetIdFinal)
+                ? Path.of(scriptsDir, outputSubdir)
+                : Path.of(scriptsDir, outputSubdir, projetIdFinal);
+
         if (!Files.exists(dossierTests) || !Files.isDirectory(dossierTests)) {
             log.warn("Dossier de tests introuvable : {}", dossierTests);
             return new MultiTypeTestResult(0, 0, 0, 0.0, Map.of(), List.of());
@@ -44,7 +52,7 @@ public class MultiTypeTestExecutionService {
         List<FichierDetail> details = new ArrayList<>();
 
         Map<String, int[]> statsParType = new HashMap<>();
-        statsParType.put("UNITAIRE", new int[]{0, 0, 0});     // {total, reussis, echoues}
+        statsParType.put("UNITAIRE", new int[]{0, 0, 0});
         statsParType.put("INTEGRATION", new int[]{0, 0, 0});
         statsParType.put("API", new int[]{0, 0, 0});
 
@@ -55,7 +63,9 @@ public class MultiTypeTestExecutionService {
         for (Path fichier : fichiersTests) {
             String nomFichier = fichier.getFileName().toString();
             String categorie = determinerCategorie(nomFichier);
-            String cheminRelatif = outputSubdir + "/" + nomFichier;
+            String cheminRelatif = "projet-reference".equals(projetIdFinal)
+                    ? outputSubdir + "/" + nomFichier
+                    : outputSubdir + "/" + projetIdFinal + "/" + nomFichier;
 
             ExecutionTestResult resultExec = jestExecutionService.executerTest(cheminRelatif);
 
@@ -100,7 +110,7 @@ public class MultiTypeTestExecutionService {
             resultatsParType.put(entry.getKey(), new CategorieMetrics(tot, reu, ech, tx));
         }
 
-        log.info("Suite multi-types executee : {}/{} tests reussis ({}%)", reussisGlobal, totalGlobal, tauxSuccesGlobal);
+        log.info("Suite multi-types executee pour projet {}: {}/{} tests reussis ({}%)", projetIdFinal, reussisGlobal, totalGlobal, tauxSuccesGlobal);
 
         return new MultiTypeTestResult(totalGlobal, reussisGlobal, echouesGlobal, tauxSuccesGlobal, resultatsParType, details);
     }

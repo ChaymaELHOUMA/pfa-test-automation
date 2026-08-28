@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { AstAnalysisOutcome, PipelineResult } from '../types/api';
-import { apiService, checkBackendHealth, setForceMockMode, isForceMockMode } from '../services/api';
+import { AstAnalysisOutcome, PipelineResult, ProjectMetadata } from '../types/api';
+import { apiService, checkBackendHealth, setForceMockMode } from '../services/api';
 import { MOCK_AST_OUTCOME } from '../services/mockData';
 
 export interface ExecutionRecord {
@@ -16,9 +16,26 @@ export interface ExecutionRecord {
   scoreMutationPct: number;
 }
 
+const DEFAULT_PROJECT: ProjectMetadata = {
+  idProjet: 'projet-reference',
+  nomProjet: 'Projet de Référence (Demo)',
+  pointEntree: 'app.js',
+  repositoryFile: 'utilisateurRepository.js',
+  fichiers: [
+    'projet-reference/routes-utilisateurs.js',
+    'projet-reference/app.js',
+    'projet-reference/utilisateurRepository.js'
+  ]
+};
+
 interface AppContextType {
   activeTab: string;
   setActiveTab: (tab: string) => void;
+  activeProject: ProjectMetadata;
+  setActiveProject: (proj: ProjectMetadata) => void;
+  availableProjects: ProjectMetadata[];
+  refreshProjects: () => Promise<void>;
+  uploadProject: (file: File, pointEntree: string, repositoryFile?: string, nomProjet?: string) => Promise<ProjectMetadata>;
   astOutcome: AstAnalysisOutcome | null;
   setAstOutcome: (outcome: AstAnalysisOutcome | null) => void;
   currentFilePath: string;
@@ -40,8 +57,10 @@ const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [activeTab, setActiveTab] = useState<string>('dashboard');
+  const [activeProject, setActiveProjectState] = useState<ProjectMetadata>(DEFAULT_PROJECT);
+  const [availableProjects, setAvailableProjects] = useState<ProjectMetadata[]>([DEFAULT_PROJECT]);
   const [astOutcome, setAstOutcome] = useState<AstAnalysisOutcome | null>(MOCK_AST_OUTCOME);
-  const [currentFilePath, setCurrentFilePath] = useState<string>('projet-reference/routes-utilisateurs.js');
+  const [currentFilePath, setCurrentFilePath] = useState<string>('routes-utilisateurs.js');
   const [isBackendLive, setIsBackendLive] = useState<boolean>(false);
   const [isDemoMode, setIsDemoModeState] = useState<boolean>(false);
   const [lastGeneratedTestCode, setLastGeneratedTestCode] = useState<string | null>(null);
@@ -77,6 +96,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   useEffect(() => {
     checkHealth();
+    refreshProjects();
     const interval = setInterval(checkHealth, 15000);
     return () => clearInterval(interval);
   }, []);
@@ -84,6 +104,31 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const checkHealth = async () => {
     const live = await checkBackendHealth();
     setIsBackendLive(live);
+  };
+
+  const refreshProjects = async () => {
+    const projets = await apiService.listerProjets();
+    if (projets && projets.length > 0) {
+      setAvailableProjects(projets);
+    } else {
+      setAvailableProjects([DEFAULT_PROJECT]);
+    }
+  };
+
+  const setActiveProject = (proj: ProjectMetadata) => {
+    setActiveProjectState(proj);
+    if (proj.fichiers && proj.fichiers.length > 0) {
+      setCurrentFilePath(proj.fichiers[0]);
+    } else {
+      setCurrentFilePath(proj.pointEntree);
+    }
+  };
+
+  const uploadProject = async (file: File, pointEntree: string, repositoryFile?: string, nomProjet?: string): Promise<ProjectMetadata> => {
+    const nouveauProjet = await apiService.uploadProjet(file, pointEntree, repositoryFile, nomProjet);
+    await refreshProjects();
+    setActiveProject(nouveauProjet);
+    return nouveauProjet;
   };
 
   const setDemoMode = (demo: boolean) => {
@@ -95,7 +140,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setLoadingAst(true);
     setCurrentFilePath(filePath);
     try {
-      const outcome = await apiService.analyserAst(filePath);
+      const outcome = await apiService.analyserAst(filePath, activeProject.idProjet);
       setAstOutcome(outcome);
     } catch {
       setAstOutcome(MOCK_AST_OUTCOME);
@@ -117,6 +162,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     <AppContext.Provider value={{
       activeTab,
       setActiveTab,
+      activeProject,
+      setActiveProject,
+      availableProjects,
+      refreshProjects,
+      uploadProject,
       astOutcome,
       setAstOutcome,
       currentFilePath,

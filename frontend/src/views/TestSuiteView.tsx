@@ -1,21 +1,17 @@
 import React, { useState, useEffect } from 'react';
+import { useApp } from '../context/AppContext';
 import { apiService } from '../services/api';
 import { MultiTypeTestResult, TestDeduplicationResult } from '../types/api';
 import { Badge } from '../components/common/Badge';
-import { CodeViewer } from '../components/common/CodeViewer';
 import {
-  TestTube,
   Play,
   Filter,
-  CheckCircle2,
-  XCircle,
-  Copy,
-  PieChart as PieIcon,
   ShieldAlert
 } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
 
 export const TestSuiteView: React.FC = () => {
+  const { activeProject } = useApp();
   const [suiteResult, setSuiteResult] = useState<MultiTypeTestResult | null>(null);
   const [loadingSuite, setLoadingSuite] = useState<boolean>(false);
 
@@ -32,12 +28,12 @@ export const TestSuiteView: React.FC = () => {
 
   useEffect(() => {
     handleRunSuite();
-  }, []);
+  }, [activeProject]);
 
   const handleRunSuite = async () => {
     setLoadingSuite(true);
     try {
-      const res = await apiService.executerSuiteTests();
+      const res = await apiService.executerSuiteTests(activeProject.idProjet);
       setSuiteResult(res);
     } catch {
       // Handled by apiService mock fallback
@@ -91,9 +87,9 @@ export const TestSuiteView: React.FC = () => {
           <span className="inline-block px-3 py-1 bg-[#00A896]/20 text-[#00A896] text-xs font-semibold rounded-full mb-2">
             Étape 03 — Consolidateur Multi-Types & Déduplication
           </span>
-          <h2 className="font-serif text-2xl font-bold">Suite de Tests Consolidée (Unitaires, API & Intégration)</h2>
+          <h2 className="font-serif text-2xl font-bold">Suite de Tests Consolidée ({activeProject.nomProjet})</h2>
           <p className="text-sm text-slate-300 mt-1 max-w-2xl">
-            Exécutez la suite globale des tests générés, visualisez les métriques consolidées et détectez les redondances.
+            Exécutez la suite globale des tests générés pour le projet <strong>{activeProject.nomProjet}</strong>.
           </p>
         </div>
         <button
@@ -134,7 +130,7 @@ export const TestSuiteView: React.FC = () => {
             </div>
             <div className="pt-2">
               <Badge variant={suiteResult.testsEchoues === 0 ? 'success' : 'warning'} className="w-full justify-center py-1.5">
-                {suiteResult.testsEchoues === 0 ? '100% Succès de la Suite' : `${suiteResult.testsEchoues} Échec(s) Détecté(s) dans la Suite (Mode Crédible)`}
+                {suiteResult.testsEchoues === 0 ? '100% Succès de la Suite' : `${suiteResult.testsEchoues} Échec(s) Détecté(s) dans la Suite`}
               </Badge>
             </div>
           </div>

@@ -40,8 +40,11 @@ public class CoverageService {
     }
 
     public CoverageResult mesurerCouvertureProjet(String... testFiles) {
-        log.info("Lancement de la mesure de couverture (nyc/Istanbul/Jest) pour {}", 
-                testFiles != null && testFiles.length > 0 ? String.join(", ", testFiles) : "tous les tests");
+        return mesurerCouverturePourProjet("projet-reference", testFiles);
+    }
+
+    public CoverageResult mesurerCouverturePourProjet(String idProjet, String... testFiles) {
+        log.info("Lancement de la mesure de couverture (nyc/Istanbul/Jest) pour le projet '{}'", idProjet);
 
         List<String> argsList = new ArrayList<>();
         if (testFiles != null && testFiles.length > 0) {
@@ -51,6 +54,15 @@ public class CoverageService {
                 }
             }
         }
+
+        if (!"projet-reference".equals(idProjet) && idProjet != null) {
+            Path customConfig = Paths.get(scriptsDir, "workspaces", idProjet, "jest.config.json");
+            if (java.nio.file.Files.exists(customConfig)) {
+                argsList.add("--config");
+                argsList.add("workspaces/" + idProjet + "/jest.config.json");
+            }
+        }
+
         argsList.add("--coverage");
         argsList.add("--coverageReporter=json-summary");
         argsList.add("--coverageReporter=text");
@@ -68,7 +80,16 @@ public class CoverageService {
             return CoverageResult.erreur("Timeout dépassé (" + timeoutSeconds + "s)");
         }
 
-        File summaryFile = new File(scriptsDir, "coverage/coverage-summary.json");
+        File summaryFile;
+        if ("projet-reference".equals(idProjet) || idProjet == null) {
+            summaryFile = new File(scriptsDir, "coverage/coverage-summary.json");
+        } else {
+            summaryFile = new File(scriptsDir, "workspaces/" + idProjet + "/coverage/coverage-summary.json");
+            if (!summaryFile.exists()) {
+                summaryFile = new File(scriptsDir, "coverage/coverage-summary.json");
+            }
+        }
+
         if (!summaryFile.exists()) {
             log.error("Fichier de couverture introuvable : {}", summaryFile.getAbsolutePath());
             return CoverageResult.erreur("Fichier coverage-summary.json non produit par Jest/nyc. stderr: " + result.getStderr());

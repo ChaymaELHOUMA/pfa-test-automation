@@ -29,6 +29,11 @@ public class GenerationTestService {
     }
 
     public ResultatGeneration genererEtSauvegarder(String nomFonction, String codeSource) {
+        return genererEtSauvegarder(nomFonction, codeSource, "projet-reference");
+    }
+
+    public ResultatGeneration genererEtSauvegarder(String nomFonction, String codeSource, String idProjet) {
+        String projetIdFinal = (idProjet != null && !idProjet.isBlank()) ? idProjet : "projet-reference";
         String reponseLlm;
         try {
             reponseLlm = llmService.genererTest(nomFonction, codeSource);
@@ -46,8 +51,10 @@ public class GenerationTestService {
         }
 
         try {
-            Path fichier = fileWriter.ecrireFichierTest(nomFonction, codeTest);
-            log.info("Test genere avec succes pour {} -> {}", nomFonction, fichier);
+            Path fichier = "projet-reference".equals(projetIdFinal)
+                    ? fileWriter.ecrireFichierTest(nomFonction, codeTest)
+                    : fileWriter.ecrireFichierTest(nomFonction, codeTest, projetIdFinal);
+            log.info("Test genere avec succes pour {} sur projet {} -> {}", nomFonction, projetIdFinal, fichier);
             return ResultatGeneration.succes(fichier.toString());
         } catch (IOException e) {
             log.error("Erreur d'ecriture du fichier de test pour {}", nomFonction, e);

@@ -1,3 +1,11 @@
+export interface ProjectMetadata {
+  idProjet: string;
+  nomProjet: string;
+  pointEntree: string;
+  repositoryFile?: string | null;
+  fichiers: string[];
+}
+
 export interface BrancheInfo {
   type: string;
   aUnElse: boolean | null;
@@ -38,6 +46,7 @@ export interface AstAnalysisOutcome {
 export interface PipelineRequest {
   nomFonction: string;
   codeSource: string;
+  idProjet?: string;
 }
 
 export interface PipelineResult {
@@ -45,6 +54,7 @@ export interface PipelineResult {
   etapeEnEchec: string | null;
   messageErreur: string | null;
   cheminFichierTest: string | null;
+  codeTest: string | null;
   totalTests: number | null;
   testsReussis: number | null;
   testsEchoues: number | null;

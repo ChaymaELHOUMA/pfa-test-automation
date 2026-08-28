@@ -3,6 +3,7 @@ package com.smartautomation.testautomation.service;
 import com.smartautomation.testautomation.model.BrancheInfo;
 import com.smartautomation.testautomation.model.CasErreurInfo;
 import com.smartautomation.testautomation.model.UniteTestable;
+import com.smartautomation.testautomation.service.ProjectService.ProjectMetadata;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -11,7 +12,17 @@ import java.util.List;
 @Service
 public class PromptBuilderService {
 
+    private final ProjectService projectService;
+
+    public PromptBuilderService(ProjectService projectService) {
+        this.projectService = projectService;
+    }
+
     public String construirePromptCible(UniteTestable unite, String extraitCodeSource, List<String> testsExistants) {
+        return construirePromptCible(unite, extraitCodeSource, testsExistants, "projet-reference");
+    }
+
+    public String construirePromptCible(UniteTestable unite, String extraitCodeSource, List<String> testsExistants, String idProjet) {
         StringBuilder sb = new StringBuilder();
 
         if (unite.isRoute()) {
@@ -58,7 +69,7 @@ public class PromptBuilderService {
         sb.append("3. Assure-toi que toutes les variables et fonctions utilisees sont definies et accessibles.\n\n");
 
         if (unite.isRoute()) {
-            ajouterInstructionsSupertest(sb, unite);
+            ajouterInstructionsSupertest(sb, unite, idProjet);
         } else {
             sb.append("IMPORTANT POUR FONCTION STANDALONE :\n");
             sb.append("Le fichier de test doit etre 100% autonome et directement executable.\n");
@@ -69,12 +80,16 @@ public class PromptBuilderService {
 
         return sb.toString();
     }
-    
+
     public String construirePromptBrut(UniteTestable unite, String extraitCodeSource) {
-        return construirePromptBrut(unite, extraitCodeSource, List.of());
+        return construirePromptBrut(unite, extraitCodeSource, List.of(), "projet-reference");
     }
 
     public String construirePromptBrut(UniteTestable unite, String extraitCodeSource, List<String> testsExistants) {
+        return construirePromptBrut(unite, extraitCodeSource, testsExistants, "projet-reference");
+    }
+
+    public String construirePromptBrut(UniteTestable unite, String extraitCodeSource, List<String> testsExistants, String idProjet) {
         StringBuilder sb = new StringBuilder();
 
         if (unite.isRoute()) {
@@ -87,7 +102,7 @@ public class PromptBuilderService {
         sb.append("Code source :\n").append(extraitCodeSource).append("\n\n");
 
         ajouterSectionTestsExistants(sb, testsExistants);
-        
+
         sb.append("Genere PLUSIEURS tests unitaires Jest distincts pour ce code, un test par categorie applicable :\n");
         sb.append("- cas nominal : entree valide standard\n");
         sb.append("- cas limite : 0, chaine vide \"\", tableau vide [], objet vide {}\n");
@@ -107,7 +122,7 @@ public class PromptBuilderService {
         sb.append("2. Pour les fonctions asynchrones, utilise await expect(maFonctionAsync(...)).rejects.toThrow();\n\n");
 
         if (unite.isRoute()) {
-            ajouterInstructionsSupertest(sb, unite);
+            ajouterInstructionsSupertest(sb, unite, idProjet);
         } else {
             sb.append("IMPORTANT POUR FONCTION STANDALONE :\n");
             sb.append("Le fichier de test doit etre 100% autonome et directement executable.\n");
@@ -129,23 +144,42 @@ public class PromptBuilderService {
         }
     }
 
-    private void ajouterInstructionsSupertest(StringBuilder sb, UniteTestable unite) {
+    private void ajouterInstructionsSupertest(StringBuilder sb, UniteTestable unite, String idProjet) {
+        ProjectMetadata metadata = projectService.getProjet(idProjet);
+        String subfolder = (idProjet == null || idProjet.equals("projet-reference")) ? "generated-tests" : "generated-tests/" + idProjet;
+
+        String appImport = projectService.calculerEtValiderImportRelatif(idProjet, subfolder, metadata.pointEntree());
+        String repoImport = metadata.repositoryFile() != null ? projectService.calculerEtValiderImportRelatif(idProjet, subfolder, metadata.repositoryFile()) : null;
+
         sb.append("IMPORTANT POUR ROUTE EXPRESS (SUPERTEST) :\n");
         sb.append("Ce handler est une route Express (req/res).\n");
         sb.append("Utilise Supertest sur l'application Express COMPLETE — ne l'appelle PAS directement avec des objets req/res mockes.\n");
         sb.append("NE recree PAS une mini-app Express avec le handler copie/colle.\n");
         sb.append("NE utilise PAS jest.mock(), jest.fn() ni aucun mock de service/repository/module interne.\n");
-        sb.append("CHEMINS DE REQUIRE STRICTEMENT OBLIGATOIRES DEPUIS generated-tests/ (copier exactement ces lignes) :\n");
+        sb.append("CHEMINS DE REQUIRE STRICTEMENT OBLIGATOIRES DEPUIS ").append(subfolder).append("/ (copier exactement ces lignes) :\n");
         sb.append("  const request = require('supertest');\n");
-        sb.append("  const app = require('../projet-reference/app');\n");
-        sb.append("  const { reinitialiserEtat } = require('../projet-reference/utilisateurRepository');\n");
-        sb.append("  beforeEach(() => { reinitialiserEtat(); });\n\n");
-        sb.append("INTERDIT : require('../app'), require('./app'), require('../utilisateurRepository').\n");
+        if (appImport != null) {
+            sb.append("  const app = require('").append(appImport).append("');\n");
+        } else {
+            sb.append("  const app = require('../").append(metadata.pointEntree().replace(".js", "")).append("');\n");
+        }
+
+        if (repoImport != null) {
+            sb.append("  const { reinitialiserEtat } = require('").append(repoImport).append("');\n");
+            sb.append("  beforeEach(() => { reinitialiserEtat(); });\n\n");
+        } else {
+            sb.append("\n");
+        }
+
         sb.append("Exemple de syntaxe attendue :\n");
         sb.append("const request = require('supertest');\n");
-        sb.append("const app = require('../projet-reference/app');\n");
-        sb.append("const { reinitialiserEtat } = require('../projet-reference/utilisateurRepository');\n");
-        sb.append("beforeEach(() => { reinitialiserEtat(); });\n");
+        if (appImport != null) {
+            sb.append("const app = require('").append(appImport).append("');\n");
+        }
+        if (repoImport != null) {
+            sb.append("const { reinitialiserEtat } = require('").append(repoImport).append("');\n");
+            sb.append("beforeEach(() => { reinitialiserEtat(); });\n");
+        }
         sb.append("test('cas nominal - <description>', async () => {\n");
         sb.append("  const reponse = await request(app).")
           .append(unite.getMethode().toLowerCase()).append("('")
@@ -197,15 +231,26 @@ public class PromptBuilderService {
 
         return chemins;
     }
+
     public List<String> decrireCheminsACouvrirPublic(UniteTestable unite) {
         return decrireCheminsACouvrir(unite);
     }
 
     public String construirePromptIntegration(UniteTestable unite, String extraitRoute, String contexteCouches) {
-        return construirePromptIntegration(unite, extraitRoute, contexteCouches, List.of());
+        return construirePromptIntegration(unite, extraitRoute, contexteCouches, List.of(), "projet-reference");
     }
 
     public String construirePromptIntegration(UniteTestable unite, String extraitRoute, String contexteCouches, List<String> testsExistants) {
+        return construirePromptIntegration(unite, extraitRoute, contexteCouches, testsExistants, "projet-reference");
+    }
+
+    public String construirePromptIntegration(UniteTestable unite, String extraitRoute, String contexteCouches, List<String> testsExistants, String idProjet) {
+        ProjectMetadata metadata = projectService.getProjet(idProjet);
+        String subfolder = (idProjet == null || idProjet.equals("projet-reference")) ? "generated-tests" : "generated-tests/" + idProjet;
+
+        String appImport = projectService.calculerEtValiderImportRelatif(idProjet, subfolder, metadata.pointEntree());
+        String repoImport = metadata.repositoryFile() != null ? projectService.calculerEtValiderImportRelatif(idProjet, subfolder, metadata.repositoryFile()) : null;
+
         StringBuilder sb = new StringBuilder();
 
         sb.append("Voici une route Express a tester en INTEGRATION (plusieurs couches) : ")
@@ -224,37 +269,41 @@ public class PromptBuilderService {
         sb.append("Regles obligatoires :\n");
         sb.append("- Ne mocke AUCUNE fonction/service/repository interne : exercice le vrai chemin route -> service -> donnees.\n");
         sb.append("- Utilise Supertest sur l'application Express complete.\n");
-        sb.append("  CHEMIN EXACT OBLIGATOIRE depuis generated-tests/ (ne pas raccourcir) :\n");
-        sb.append("    const app = require('../projet-reference/app');\n");
-        sb.append("    const { reinitialiserEtat } = require('../projet-reference/utilisateurRepository');\n");
-        sb.append("  INTERDIT : require('../app'), require('./app'), require('../utilisateurRepository').\n");
+        sb.append("  CHEMIN EXACT OBLIGATOIRE depuis ").append(subfolder).append("/ (ne pas raccourcir) :\n");
+        if (appImport != null) {
+            sb.append("    const app = require('").append(appImport).append("');\n");
+        }
+        if (repoImport != null) {
+            sb.append("    const { reinitialiserEtat } = require('").append(repoImport).append("');\n");
+        }
         sb.append("- Verifie le code HTTP ET la structure du body de reponse.\n");
-        sb.append("- VERIFICATION DE PERSISTANCE : Si la route modifie un etat (ex: PUT, POST, DELETE), refais un GET (ou un second appel) pour confirmer ");
-        sb.append("que le changement a bien mepris effet et persiste dans la couche de donnees, pas seulement dans la reponse immediate.\n");
-        sb.append("- En cas d'erreur de validation (ex: statut invalide -> 400), refais aussi un GET pour verifier que les donnees n'ont PAS ete modifiees.\n");
-        sb.append("- Reinitialise l'etat partage entre les tests si necessaire (ex: beforeEach avec reinitialiserEtat ");
-        sb.append("du repository) pour garantir l'isolation.\n\n");
+        if (repoImport != null) {
+            sb.append("- VERIFICATION DE PERSISTANCE : Si la route modifie un etat (ex: PUT, POST, DELETE), refais un GET (ou un second appel) pour confirmer ");
+            sb.append("que le changement a bien mepris effet et persiste dans la couche de donnees, pas seulement dans la reponse immediate.\n");
+            sb.append("- En cas d'erreur de validation (ex: statut invalide -> 400), refais aussi un GET pour verifier que les donnees n'ont PAS ete modifiees.\n");
+            sb.append("- Reinitialise l'etat partage entre les tests si necessaire (ex: beforeEach avec reinitialiserEtat ");
+            sb.append("du repository) pour garantir l'isolation.\n\n");
+        }
 
         sb.append("FORMAT DE NOMMAGE STRICTEMENT OBLIGATOIRE (prefixe d'integration OBLIGATOIRE) :\n");
         sb.append("test('integration - <description>', async () => { ... })\n\n");
 
         sb.append("Syntaxe attendue (copier ces lignes require EXACTEMENT, sans modification) :\n");
         sb.append("const request = require('supertest');\n");
-        sb.append("const app = require('../projet-reference/app');\n");
-        sb.append("const { reinitialiserEtat } = require('../projet-reference/utilisateurRepository');\n");
-        sb.append("beforeEach(() => { reinitialiserEtat(); });\n");
+        if (appImport != null) {
+            sb.append("const app = require('").append(appImport).append("');\n");
+        }
+        if (repoImport != null) {
+            sb.append("const { reinitialiserEtat } = require('").append(repoImport).append("');\n");
+            sb.append("beforeEach(() => { reinitialiserEtat(); });\n");
+        }
         sb.append("test('integration - <description>', async () => {\n");
         sb.append("  const reponsePut = await request(app).")
           .append(unite.getMethode().toLowerCase()).append("('")
           .append(exempleCheminSupertest(unite.getChemin())).append("').send({ ... });\n");
         sb.append("  expect(reponsePut.statusCode).toBe(200);\n");
-        sb.append("  const reponseGet = await request(app).get('")
-          .append(exempleCheminSupertest(unite.getChemin())).append("');\n");
-        sb.append("  expect(reponseGet.body.statut).toBe(...);\n");
         sb.append("});\n\n");
 
-        sb.append("Genere au moins un test nominal (succes complet multi-couches avec verification GET) et un test d'erreur ");
-        sb.append("si applicable (ex: statut invalide -> 400 sans modification de l'etat).\n");
         sb.append("Reponds uniquement avec du code Jest valide entoure de ```javascript et ```, sans aucun texte explicatif avant ou apres.");
 
         return sb.toString();

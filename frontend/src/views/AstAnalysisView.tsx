@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
 import { Badge } from '../components/common/Badge';
 import { AlertBanner } from '../components/common/AlertBanner';
@@ -15,9 +15,13 @@ import {
 } from 'lucide-react';
 
 export const AstAnalysisView: React.FC = () => {
-  const { currentFilePath, runAstAnalysis, astOutcome, loadingAst, setActiveTab } = useApp();
+  const { currentFilePath, runAstAnalysis, astOutcome, loadingAst, setActiveTab, activeProject } = useApp();
   const [filePathInput, setFilePathInput] = useState<string>(currentFilePath);
   const [expandedCards, setExpandedCards] = useState<Record<string, boolean>>({});
+
+  useEffect(() => {
+    setFilePathInput(currentFilePath);
+  }, [currentFilePath]);
 
   const handleAnalyze = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
@@ -28,11 +32,12 @@ export const AstAnalysisView: React.FC = () => {
     setExpandedCards(prev => ({ ...prev, [nom]: !prev[nom] }));
   };
 
-  const presets = [
-    { label: 'routes-utilisateurs.js (Routeur Express)', path: 'projet-reference/routes-utilisateurs.js' },
-    { label: 'app.js (Serveur Principal)', path: 'projet-reference/app.js' },
-    { label: 'utilisateurRepository.js (Repository)', path: 'projet-reference/utilisateurRepository.js' }
-  ];
+  const presets = activeProject.fichiers && activeProject.fichiers.length > 0
+    ? activeProject.fichiers.map(f => ({ label: f, path: f }))
+    : [
+        { label: activeProject.pointEntree, path: activeProject.pointEntree },
+        { label: 'routes-utilisateurs.js', path: 'routes-utilisateurs.js' }
+      ];
 
   const unites = astOutcome?.resultat?.unites || [];
 
@@ -41,19 +46,19 @@ export const AstAnalysisView: React.FC = () => {
       {/* Header Banner */}
       <div className="bg-[#1E2761] text-white p-6 rounded-2xl shadow-xl border border-slate-700/50">
         <span className="inline-block px-3 py-1 bg-[#00A896]/20 text-[#00A896] text-xs font-semibold rounded-full mb-2">
-          Étape 01 — Analyse Syntaxique AST
+          Étape 01 — Analyse Syntaxique AST ({activeProject.nomProjet})
         </span>
         <h2 className="font-serif text-2xl font-bold">Analyse du Code Source JavaScript</h2>
         <p className="text-sm text-slate-300 mt-1 max-w-3xl">
-          Analysez le fichier JavaScript via Acorn / Acorn-Walk. L'analyse extrait les fonctions, les routes Express, les branches d'exécution et les codes HTTP d'erreur.
+          Analysez le fichier JavaScript via Acorn / Acorn-Walk sur le projet <strong>{activeProject.nomProjet}</strong>. L'analyse extrait les fonctions, les routes Express, les branches d'exécution et les codes HTTP d'erreur.
         </p>
       </div>
 
       {/* Input Form & Presets */}
       <div className="bg-white p-6 rounded-2xl border border-[#E2E8F0] shadow-sm">
-        <form onSubmit={handleAnalyze} className="space-y-4">
-          <label className="block text-xs font-bold text-[#1E2761] uppercase tracking-wider">
-            Chemin du Fichier Source JavaScript
+        <form onSubmit={handleAnalyze} className="space-[#1E2761] space-y-4">
+          <label className="block text-xs font-bold uppercase tracking-wider">
+            Chemin du Fichier Source JavaScript ({activeProject.idProjet})
           </label>
           <div className="flex flex-col sm:flex-row gap-3">
             <div className="relative flex-1">
@@ -63,7 +68,7 @@ export const AstAnalysisView: React.FC = () => {
                 value={filePathInput}
                 onChange={(e) => setFilePathInput(e.target.value)}
                 className="w-full pl-11 pr-4 py-2.5 bg-[#F4F6FB] border border-slate-300 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-[#00A896] font-mono"
-                placeholder="ex. projet-reference/routes-utilisateurs.js"
+                placeholder={`ex. ${activeProject.pointEntree}`}
                 required
               />
             </div>
@@ -79,7 +84,7 @@ export const AstAnalysisView: React.FC = () => {
 
           {/* Presets buttons */}
           <div className="flex flex-wrap items-center gap-2 pt-2">
-            <span className="text-xs text-slate-500 font-medium">Préréglages :</span>
+            <span className="text-xs text-slate-500 font-medium">Fichiers Détectés :</span>
             {presets.map((p) => (
               <button
                 key={p.path}

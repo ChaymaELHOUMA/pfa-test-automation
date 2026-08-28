@@ -5,6 +5,7 @@ import {
   MultiTypeTestResult,
   MutationResult,
   PipelineResult,
+  ProjectMetadata,
   PromptComparisonResult,
   TestDeduplicationResult
 } from '../types/api';
@@ -46,11 +47,36 @@ export const checkBackendHealth = async (): Promise<boolean> => {
 };
 
 export const apiService = {
+  // Projets
+  listerProjets: async (): Promise<ProjectMetadata[]> => {
+    if (FORCE_MOCK_MODE) return [];
+    try {
+      const res = await client().get<ProjectMetadata[]>('/api/projets');
+      return res.data;
+    } catch {
+      return [];
+    }
+  },
+
+  uploadProjet: async (file: File, pointEntree: string, repositoryFile?: string, nomProjet?: string): Promise<ProjectMetadata> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('pointEntree', pointEntree);
+    if (repositoryFile) formData.append('repositoryFile', repositoryFile);
+    if (nomProjet) formData.append('nomProjet', nomProjet);
+
+    const res = await axios.post<ProjectMetadata>(`${BASE_URL}/upload-projet`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+      timeout: 60000
+    });
+    return res.data;
+  },
+
   // 1. Analyse AST
-  analyserAst: async (chemin: string): Promise<AstAnalysisOutcome> => {
+  analyserAst: async (chemin: string, idProjet?: string): Promise<AstAnalysisOutcome> => {
     if (FORCE_MOCK_MODE) return MOCK_AST_OUTCOME;
     try {
-      const res = await client().get<AstAnalysisOutcome>(`/analyser-ast`, { params: { chemin } });
+      const res = await client().get<AstAnalysisOutcome>(`/analyser-ast`, { params: { chemin, idProjet } });
       return res.data;
     } catch (err: any) {
       console.warn('API Call failed, falling back to mock data:', err);
@@ -63,7 +89,8 @@ export const apiService = {
     chemin: string,
     nomUnite: string,
     mode: 'structure' | 'brut' | 'integration' = 'structure',
-    testsExistants?: string[]
+    testsExistants?: string[],
+    idProjet?: string
   ): Promise<{ prompt?: string; erreur?: string }> => {
     if (FORCE_MOCK_MODE) {
       return {
@@ -71,7 +98,7 @@ export const apiService = {
       };
     }
     try {
-      const params: any = { chemin, nomUnite, mode };
+      const params: any = { chemin, nomUnite, mode, idProjet };
       if (testsExistants && testsExistants.length > 0) {
         params.testsExistants = testsExistants.join(',');
       }
@@ -86,10 +113,10 @@ export const apiService = {
   },
 
   // 3. Génération & Exécution Ciblée
-  genererEtExecuterTest: async (nomFonction: string, codeSource: string): Promise<PipelineResult> => {
+  genererEtExecuterTest: async (nomFonction: string, codeSource: string, idProjet?: string): Promise<PipelineResult> => {
     if (FORCE_MOCK_MODE) return MOCK_PIPELINE_RESULT;
     try {
-      const res = await client().post<PipelineResult>('/generer-et-executer-test', { nomFonction, codeSource });
+      const res = await client().post<PipelineResult>('/generer-et-executer-test', { nomFonction, codeSource, idProjet });
       return res.data;
     } catch (err: any) {
       console.warn('API Call /generer-et-executer-test failed:', err);
@@ -98,10 +125,10 @@ export const apiService = {
   },
 
   // 4. Comparaison de Prompts
-  comparerPrompts: async (chemin: string, nomUnite: string): Promise<PromptComparisonResult> => {
+  comparerPrompts: async (chemin: string, nomUnite: string, idProjet?: string): Promise<PromptComparisonResult> => {
     if (FORCE_MOCK_MODE) return MOCK_PROMPT_COMPARISON;
     try {
-      const res = await client().get<PromptComparisonResult>('/comparer-prompts', { params: { chemin, nomUnite } });
+      const res = await client().get<PromptComparisonResult>('/comparer-prompts', { params: { chemin, nomUnite, idProjet } });
       return res.data;
     } catch {
       return MOCK_PROMPT_COMPARISON;
@@ -109,10 +136,10 @@ export const apiService = {
   },
 
   // 5. Exécution de toute la suite (Multi-types)
-  executerSuiteTests: async (): Promise<MultiTypeTestResult> => {
+  executerSuiteTests: async (idProjet?: string): Promise<MultiTypeTestResult> => {
     if (FORCE_MOCK_MODE) return MOCK_MULTI_TYPE_TEST_RESULT;
     try {
-      const res = await client().post<MultiTypeTestResult>('/executer-suite-tests');
+      const res = await client().post<MultiTypeTestResult>('/executer-suite-tests', null, { params: { idProjet } });
       return res.data;
     } catch {
       return MOCK_MULTI_TYPE_TEST_RESULT;
@@ -141,10 +168,11 @@ export const apiService = {
   },
 
   // 7. Couverture nyc / Istanbul
-  mesurerCouvertureProjet: async (): Promise<CoverageResult> => {
+  mesurerCouvertureProjet: async (idProjet?: string): Promise<CoverageResult> => {
     if (FORCE_MOCK_MODE) return MOCK_COVERAGE_RESULT;
     try {
-      const res = await client().get<CoverageResult>('/api/coverage/projet-reference');
+      const target = idProjet ? `/api/coverage/${idProjet}` : '/api/coverage/projet-reference';
+      const res = await client().get<CoverageResult>(target);
       return res.data;
     } catch {
       return MOCK_COVERAGE_RESULT;
@@ -152,10 +180,11 @@ export const apiService = {
   },
 
   // 8. Mutation testing Stryker
-  obtenirMutationProjetReference: async (): Promise<MutationResult> => {
+  obtenirMutationProjetReference: async (idProjet?: string): Promise<MutationResult> => {
     if (FORCE_MOCK_MODE) return MOCK_MUTATION_RESULT;
     try {
-      const res = await client().get<MutationResult>('/api/mutation/projet-reference');
+      const target = idProjet ? `/api/mutation/${idProjet}` : '/api/mutation/projet-reference';
+      const res = await client().get<MutationResult>(target, { timeout: 310000 });
       return res.data;
     } catch {
       return MOCK_MUTATION_RESULT;

@@ -1,0 +1,22 @@
+{
+  "testEnvironment": "node",
+  "testMatch": [
+    "<rootDir>/generated-tests/express-app__1_-045d71/**/*.test.js"
+  ],
+  "modulePathIgnorePatterns": [
+    "<rootDir>/reports/",
+    "<rootDir>/coverage/"
+  ],
+  "collectCoverageFrom": [
+    "workspaces/express-app__1_-045d71/**/*.js"
+  ],
+  "coverageDirectory": "workspaces/express-app__1_-045d71/coverage/",
+  "coverageReporters": [
+    "text",
+    "text-summary",
+    "json-summary",
+    "lcov",
+    "html"
+  ],
+  "testTimeout": 30000
+}

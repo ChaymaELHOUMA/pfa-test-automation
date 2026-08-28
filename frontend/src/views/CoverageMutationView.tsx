@@ -1,23 +1,20 @@
 import React, { useState, useEffect } from 'react';
+import { useApp } from '../context/AppContext';
 import { apiService } from '../services/api';
 import { CoverageResult, MutationResult } from '../types/api';
-import { MOCK_SURVIVED_MUTANTS_LIST, SurvivedMutantDetail } from '../services/mockData';
+import { MOCK_SURVIVED_MUTANTS_LIST } from '../services/mockData';
 import { Badge } from '../components/common/Badge';
 import {
-  ShieldCheck,
   Target,
   BarChart2,
   RefreshCw,
-  FileCode2,
-  CheckCircle2,
-  XCircle,
   AlertTriangle,
-  Layers,
   ArrowRightLeft
 } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 export const CoverageMutationView: React.FC = () => {
+  const { activeProject } = useApp();
   const [activeSubTab, setActiveSubTab] = useState<'coverage' | 'mutation' | 'cross'>('coverage');
 
   const [coverageResult, setCoverageResult] = useState<CoverageResult | null>(null);
@@ -28,15 +25,15 @@ export const CoverageMutationView: React.FC = () => {
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [activeProject]);
 
   const loadData = async () => {
     setLoadingCoverage(true);
     setLoadingMutation(true);
     try {
       const [cov, mut] = await Promise.all([
-        apiService.mesurerCouvertureProjet(),
-        apiService.obtenirMutationProjetReference()
+        apiService.mesurerCouvertureProjet(activeProject.idProjet),
+        apiService.obtenirMutationProjetReference(activeProject.idProjet)
       ]);
       setCoverageResult(cov);
       setMutationResult(mut);
@@ -54,22 +51,10 @@ export const CoverageMutationView: React.FC = () => {
 
   const crossData = [
     {
-      name: 'routes-utilisateurs.js',
-      CouvertureLignes: 29.82,
-      CouvertureBranches: 25.74,
-      ScoreMutation: 21.67
-    },
-    {
-      name: 'utilisateurRepository.js',
-      CouvertureLignes: 78.26,
-      CouvertureBranches: 50.00,
-      ScoreMutation: 25.00
-    },
-    {
-      name: 'app.js',
-      CouvertureLignes: 80.00,
-      CouvertureBranches: 0.00,
-      ScoreMutation: 0.00
+      name: activeProject.pointEntree,
+      CouvertureLignes: linesPct,
+      CouvertureBranches: branchPct,
+      ScoreMutation: mutScorePct
     }
   ];
 
@@ -81,9 +66,9 @@ export const CoverageMutationView: React.FC = () => {
           <span className="inline-block px-3 py-1 bg-[#00A896]/20 text-[#00A896] text-xs font-semibold rounded-full mb-2">
             Étape 04 — Assurance Qualité & Mutation Testing
           </span>
-          <h2 className="font-serif text-2xl font-bold">Couverture de Code (nyc) & Score de Mutation (Stryker)</h2>
+          <h2 className="font-serif text-2xl font-bold">Couverture & Mutation ({activeProject.nomProjet})</h2>
           <p className="text-sm text-slate-300 mt-1 max-w-3xl">
-            Mesurez l'instrumentation des lignes et des branches avec Istanbul, puis évaluez la sensibilité réelle de la suite de tests via l'injection de mutants.
+            Mesurez l'instrumentation avec Istanbul/Jest et la résistance aux mutations avec Stryker sur le workspace <strong>{activeProject.idProjet}</strong>.
           </p>
         </div>
         <button
@@ -180,7 +165,7 @@ export const CoverageMutationView: React.FC = () => {
           {/* Files Breakdown Table */}
           <div className="bg-white rounded-2xl border border-[#E2E8F0] shadow-sm overflow-hidden p-6">
             <h3 className="font-serif font-bold text-base text-[#1E2761] mb-4">
-              Couverture par Fichier du Projet de Référence
+              Couverture par Fichier ({activeProject.nomProjet})
             </h3>
 
             <div className="overflow-x-auto">
@@ -269,13 +254,13 @@ export const CoverageMutationView: React.FC = () => {
             </div>
           </div>
 
-          {/* Survived Mutants Detail Section (Directive 5 requirement) */}
+          {/* Survived Mutants Detail Section */}
           <div className="bg-white rounded-2xl border border-[#E2E8F0] shadow-sm overflow-hidden p-6 space-y-4">
             <div className="flex items-center gap-2">
               <AlertTriangle className="w-5 h-5 text-[#E45858]" />
               <div>
                 <h3 className="font-serif font-bold text-base text-[#1E2761]">
-                  Analyse des Mutants Survivants (Exemples de Vulnérabilités de Tests)
+                  Analyse des Mutants Survivants
                 </h3>
                 <p className="text-xs text-slate-500">
                   Ces mutants ont été exécutés et couverts par les tests, mais les assertions n'ont pas échoué.

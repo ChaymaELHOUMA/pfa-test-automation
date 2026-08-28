@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { getBaseUrl, setBaseUrl } from '../../services/api';
-import { Activity, Server, Settings, Zap } from 'lucide-react';
+import { Activity, FolderCheck, Server, Settings } from 'lucide-react';
 
 export const Header: React.FC = () => {
-  const { isBackendLive, isDemoMode, setDemoMode } = useApp();
+  const { isBackendLive, isDemoMode, setDemoMode, activeProject, setActiveTab } = useApp();
   const [showSettings, setShowSettings] = useState(false);
   const [urlInput, setUrlInput] = useState(getBaseUrl());
 
@@ -14,21 +14,23 @@ export const Header: React.FC = () => {
   };
 
   return (
-    <header className="bg-[#1E2761] text-white px-6 py-4 flex items-center justify-between shadow-lg sticky top-0 z-30 border-b border-[#00A896]/20">
-      <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-xl bg-[#00A896] flex items-center justify-center shadow-md">
-          <Zap className="w-6 h-6 text-white" />
-        </div>
-        <div>
-          <h1 className="font-serif text-lg font-bold tracking-wide text-white">
-            Automatisation des Tests JS par IA
-          </h1>
-          <p className="text-xs text-slate-300 font-sans">
-            Orchestrateur Java/Spring Boot & LLM • Analyse AST, Jest, Istanbul & Stryker
-          </p>
-        </div>
+    <header className="bg-[#1E2761] text-white px-6 py-3 flex items-center justify-between shadow-lg sticky top-0 z-30 border-b border-[#00A896]/20">
+      {/* Left side: Active Project Indicator */}
+      <div className="flex items-center gap-4">
+        <button
+          onClick={() => setActiveTab('upload')}
+          className="flex items-center gap-2.5 bg-[#141A43] hover:bg-[#1A2255] px-3.5 py-1.5 rounded-xl border border-[#00A896]/40 text-xs transition-colors cursor-pointer"
+          title="Cliquez pour changer ou importer un projet"
+        >
+          <FolderCheck className="w-4 h-4 text-[#00A896]" />
+          <div className="text-left">
+            <div className="text-[10px] text-slate-400 leading-none">Projet Actif</div>
+            <div className="font-bold text-slate-100 text-xs truncate max-w-[200px]">{activeProject.nomProjet}</div>
+          </div>
+        </button>
       </div>
 
+      {/* Right side: Status and settings */}
       <div className="flex items-center gap-4">
         {/* Connection Status Badge */}
         <div className="flex items-center gap-2 bg-[#141A43] px-3.5 py-1.5 rounded-full border border-slate-700/60 text-xs">

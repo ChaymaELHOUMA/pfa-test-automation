@@ -2,19 +2,22 @@ import React from 'react';
 import { useApp } from '../../context/AppContext';
 import {
   LayoutDashboard,
+  Upload,
   Search,
   Zap,
   TestTube,
   ShieldCheck,
   FileText,
+  FolderCheck,
   ChevronRight
 } from 'lucide-react';
 
 export const Sidebar: React.FC = () => {
-  const { activeTab, setActiveTab } = useApp();
+  const { activeTab, setActiveTab, activeProject } = useApp();
 
   const menuItems = [
     { id: 'dashboard', label: 'Tableau de Bord', icon: LayoutDashboard, stepNum: null },
+    { id: 'upload', label: 'Importer un Projet', icon: Upload, stepNum: 'NEW' },
     { id: 'ast', label: '1. Analyse AST', icon: Search, stepNum: '01' },
     { id: 'generation', label: '2. Génération LLM', icon: Zap, stepNum: '02' },
     { id: 'suite', label: '3. Suite de Tests', icon: TestTube, stepNum: '03' },
@@ -25,13 +28,20 @@ export const Sidebar: React.FC = () => {
   return (
     <aside className="w-64 bg-[#1E2761] text-white flex flex-col justify-between shrink-0 shadow-xl border-r border-[#00A896]/20">
       <div className="py-6 px-3">
+        {/* Active Project Widget in Sidebar */}
         <div className="px-3 mb-6">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-[#00A896]">
-            Pipeline Automatisé
-          </span>
-          <h2 className="font-serif text-sm font-semibold text-slate-200 mt-1">
-            Flux d'Exécution IA
-          </h2>
+          <button
+            onClick={() => setActiveTab('upload')}
+            className="w-full text-left bg-[#141A43] hover:bg-[#1A2255] p-3 rounded-xl border border-[#00A896]/40 transition-colors cursor-pointer block"
+            title="Changer de projet"
+          >
+            <div className="flex items-center gap-2 mb-1">
+              <FolderCheck className="w-4 h-4 text-[#00A896]" />
+              <span className="text-[10px] font-bold uppercase tracking-wider text-[#00A896]">Projet Actif</span>
+            </div>
+            <div className="font-bold text-slate-100 text-xs truncate">{activeProject.nomProjet}</div>
+            <div className="text-[10px] text-slate-400 font-mono mt-0.5 truncate">{activeProject.pointEntree}</div>
+          </button>
         </div>
 
         <nav className="space-y-1.5">

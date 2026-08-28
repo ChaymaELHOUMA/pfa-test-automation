@@ -4,6 +4,7 @@ import com.smartautomation.testautomation.model.AstAnalysisOutcome;
 import com.smartautomation.testautomation.model.UniteTestable;
 import com.smartautomation.testautomation.service.AstAnalysisService;
 import com.smartautomation.testautomation.service.CodeSnippetExtractor;
+import com.smartautomation.testautomation.service.ProjectService;
 import com.smartautomation.testautomation.service.PromptBuilderService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
@@ -17,39 +18,36 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-/**
- * Endpoint de test isole : construit et affiche le prompt cible
- * SANS appeler le LLM, pour verifier son contenu avant de l'utiliser
- * reellement (meme demarche que la validation de analyze.js en ligne
- * de commande avant son integration Java).
- */
 @RestController
 public class PromptBuilderController {
 
     private final AstAnalysisService astAnalysisService;
     private final CodeSnippetExtractor snippetExtractor;
     private final PromptBuilderService promptBuilderService;
+    private final ProjectService projectService;
 
     @Value("${node.bridge.scripts-dir:node-runner}")
     private String scriptsDir;
 
     public PromptBuilderController(AstAnalysisService astAnalysisService,
                                     CodeSnippetExtractor snippetExtractor,
-                                    PromptBuilderService promptBuilderService) {
+                                    PromptBuilderService promptBuilderService,
+                                    ProjectService projectService) {
         this.astAnalysisService = astAnalysisService;
         this.snippetExtractor = snippetExtractor;
         this.promptBuilderService = promptBuilderService;
+        this.projectService = projectService;
     }
 
-    /**
-     * GET /construire-prompt?chemin=projet-reference/routes-utilisateurs.js&nomUnite=GET /users/:id
-     */
     @GetMapping("/construire-prompt")
     public ResponseEntity<?> construirePrompt(@RequestParam String chemin,
                                               @RequestParam String nomUnite,
                                               @RequestParam(required = false, defaultValue = "structure") String mode,
-                                              @RequestParam(required = false) List<String> testsExistants) {
-        AstAnalysisOutcome outcome = astAnalysisService.analyser(chemin);
+                                              @RequestParam(required = false) List<String> testsExistants,
+                                              @RequestParam(required = false, defaultValue = "projet-reference") String idProjet) {
+
+        String cheminResolu = projectService.resoudreCheminFichier(idProjet, chemin);
+        AstAnalysisOutcome outcome = astAnalysisService.analyser(cheminResolu);
 
         if (outcome.isErreurTechnique()) {
             return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY)
@@ -62,24 +60,24 @@ public class PromptBuilderController {
 
         if (uniteOpt.isEmpty()) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(Map.of("erreur", "Unite '" + nomUnite + "' introuvable dans " + chemin));
+                    .body(Map.of("erreur", "Unite '" + nomUnite + "' introuvable dans " + cheminResolu));
         }
 
         UniteTestable unite = uniteOpt.get();
 
         try {
             List<String> existants = testsExistants != null ? testsExistants : List.of();
-            String extrait = snippetExtractor.extraireExtrait(chemin, unite.getLigneDebut(), unite.getLigneFin());
+            String extrait = snippetExtractor.extraireExtrait(cheminResolu, unite.getLigneDebut(), unite.getLigneFin());
             String prompt = switch (mode.toLowerCase()) {
-                case "brut" -> promptBuilderService.construirePromptBrut(unite, extrait, existants);
+                case "brut" -> promptBuilderService.construirePromptBrut(unite, extrait, existants, idProjet);
                 case "integration" -> {
                     if (!unite.isRoute()) {
                         yield null;
                     }
-                    String contexteCouches = construireContexteCouches(chemin);
-                    yield promptBuilderService.construirePromptIntegration(unite, extrait, contexteCouches, existants);
+                    String contexteCouches = construireContexteCouches(cheminResolu);
+                    yield promptBuilderService.construirePromptIntegration(unite, extrait, contexteCouches, existants, idProjet);
                 }
-                default -> promptBuilderService.construirePromptCible(unite, extrait, existants);
+                default -> promptBuilderService.construirePromptCible(unite, extrait, existants, idProjet);
             };
 
             if (prompt == null) {
