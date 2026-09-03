@@ -42,7 +42,7 @@ public class NodeBridgeService {
         command.add(scriptPath);
         command.addAll(Arrays.asList(args));
 
-        log.debug("Lancement du process Node : {}", command);
+        log.debug("Starting Node process: {}", command);
 
         ProcessBuilder pb = new ProcessBuilder(command);
         pb.directory(new java.io.File(scriptsDir));
@@ -58,10 +58,10 @@ public class NodeBridgeService {
             Thread stdoutThread = lireFluxDeFaconAsynchrone(process.getInputStream(), stdoutBuffer, "stdout");
             Thread stderrThread = lireFluxDeFaconAsynchrone(process.getErrorStream(), stderrBuffer, "stderr");
 
-            boolean termineATemps = process.waitFor(customTimeoutSec, TimeUnit.SECONDS);
+            boolean finishedInTime = process.waitFor(customTimeoutSec, TimeUnit.SECONDS);
 
-            if (!termineATemps) {
-                log.warn("Timeout depasse ({}s) pour le script {}, destruction forcee du process", customTimeoutSec, scriptPath);
+            if (!finishedInTime) {
+                log.warn("Timeout exceeded ({}s) for script {}, forcibly terminating process", customTimeoutSec, scriptPath);
                 process.destroyForcibly();
                 stdoutThread.join(2000);
                 stderrThread.join(2000);
@@ -76,23 +76,23 @@ public class NodeBridgeService {
             String stderr = stderrBuffer.toString();
 
             if (exitCode != 0) {
-                log.warn("Le script {} s'est termine avec le code {} : {}", scriptPath, exitCode, stderr);
+                log.warn("Script {} terminated with code {}: {}", scriptPath, exitCode, stderr);
                 return NodeExecutionResult.echecExitCode(stdout, stderr, exitCode);
             }
 
             return NodeExecutionResult.ok(stdout, stderr, exitCode);
 
         } catch (IOException e) {
-            log.error("Impossible de lancer le process Node pour le script {}", scriptPath, e);
-            return NodeExecutionResult.echecTechnique("Erreur de lancement du process : " + e.getMessage());
+            log.error("Failed to start Node process for script {}", scriptPath, e);
+            return NodeExecutionResult.echecTechnique("Process startup error: " + e.getMessage());
 
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             if (process != null) {
                 process.destroyForcibly();
             }
-            log.error("Process Node interrompu pour le script {}", scriptPath, e);
-            return NodeExecutionResult.echecTechnique("Process interrompu : " + e.getMessage());
+            log.error("Node process interrupted for script {}", scriptPath, e);
+            return NodeExecutionResult.echecTechnique("Process interrupted: " + e.getMessage());
         }
     }
 
@@ -101,7 +101,7 @@ public class NodeBridgeService {
         command.add("npx");
         command.addAll(Arrays.asList(args));
 
-        log.debug("Lancement de la commande npx : {}", command);
+        log.debug("Starting npx command: {}", command);
 
         ProcessBuilder pb = new ProcessBuilder(command);
         pb.directory(new java.io.File(scriptsDir));
@@ -118,7 +118,7 @@ public class NodeBridgeService {
 
             boolean finished = process.waitFor(timeoutSec, TimeUnit.SECONDS);
             if (!finished) {
-                log.warn("Timeout depasse ({}s) pour la commande npx {}, destruction forcee du process", timeoutSec, Arrays.toString(args));
+                log.warn("Timeout exceeded ({}s) for npx command {}, forcibly terminating process", timeoutSec, Arrays.toString(args));
                 process.destroyForcibly();
                 outThread.join(2000);
                 errThread.join(2000);
@@ -133,35 +133,35 @@ public class NodeBridgeService {
             String errStr = stderr.toString();
 
             if (exitCode != 0) {
-                log.warn("La commande npx {} s'est terminee avec le code {} : {}", Arrays.toString(args), exitCode, errStr);
+                log.warn("npx command {} terminated with code {}: {}", Arrays.toString(args), exitCode, errStr);
                 return NodeExecutionResult.echecExitCode(outStr, errStr, exitCode);
             }
 
             return NodeExecutionResult.ok(outStr, errStr, exitCode);
 
         } catch (IOException e) {
-            log.error("Impossible de lancer la commande npx {}", Arrays.toString(args), e);
-            return NodeExecutionResult.echecTechnique("Erreur de lancement du process npx : " + e.getMessage());
+            log.error("Failed to start npx command {}", Arrays.toString(args), e);
+            return NodeExecutionResult.echecTechnique("npx process startup error: " + e.getMessage());
 
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             if (process != null) {
                 process.destroyForcibly();
             }
-            log.error("Commande npx interrompue {}", Arrays.toString(args), e);
-            return NodeExecutionResult.echecTechnique("Process interrompu : " + e.getMessage());
+            log.error("npx command interrupted {}", Arrays.toString(args), e);
+            return NodeExecutionResult.echecTechnique("Process interrupted: " + e.getMessage());
         }
     }
 
-    private Thread lireFluxDeFaconAsynchrone(InputStream stream, StringBuilder cible, String nomFlux) {
+    private Thread lireFluxDeFaconAsynchrone(InputStream stream, StringBuilder target, String streamName) {
         Thread thread = new Thread(() -> {
             try (BufferedReader reader = new BufferedReader(new InputStreamReader(stream, StandardCharsets.UTF_8))) {
-                String ligne;
-                while ((ligne = reader.readLine()) != null) {
-                    cible.append(ligne).append(System.lineSeparator());
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    target.append(line).append(System.lineSeparator());
                 }
             } catch (IOException e) {
-                log.debug("Fin de lecture du flux {} ({})", nomFlux, e.getMessage());
+                log.debug("End of stream reading {} ({})", streamName, e.getMessage());
             }
         });
         thread.setDaemon(true);

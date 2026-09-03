@@ -27,3 +27,9 @@ node-runner/.stryker-tmp/
 node-runner/reports/
 node-runner/coverage/
 node-runner/*-brut.txt
+
+# Fichiers temporaires à la racine
+start.log
+package.json
+package-lock.json
+frontend/dist/

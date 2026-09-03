@@ -55,11 +55,16 @@ public class CoverageService {
             }
         }
 
-        if (!"projet-reference".equals(idProjet) && idProjet != null) {
+        if ("projet-reference".equals(idProjet) || idProjet == null || idProjet.isBlank()) {
+            log.info("Utilisation volontaire du projet de référence pour la mesure de couverture.");
+        } else {
             Path customConfig = Paths.get(scriptsDir, "workspaces", idProjet, "jest.config.json");
             if (java.nio.file.Files.exists(customConfig)) {
                 argsList.add("--config");
                 argsList.add("workspaces/" + idProjet + "/jest.config.json");
+            } else {
+                log.error("Configuration Jest introuvable pour le projet {}", idProjet);
+                return CoverageResult.erreur("Configuration introuvable pour le projet " + idProjet + " — vérifiez que le projet a bien été uploadé et initialisé.");
             }
         }
 
@@ -81,18 +86,15 @@ public class CoverageService {
         }
 
         File summaryFile;
-        if ("projet-reference".equals(idProjet) || idProjet == null) {
+        if ("projet-reference".equals(idProjet) || idProjet == null || idProjet.isBlank()) {
             summaryFile = new File(scriptsDir, "coverage/coverage-summary.json");
         } else {
             summaryFile = new File(scriptsDir, "workspaces/" + idProjet + "/coverage/coverage-summary.json");
-            if (!summaryFile.exists()) {
-                summaryFile = new File(scriptsDir, "coverage/coverage-summary.json");
-            }
         }
 
         if (!summaryFile.exists()) {
             log.error("Fichier de couverture introuvable : {}", summaryFile.getAbsolutePath());
-            return CoverageResult.erreur("Fichier coverage-summary.json non produit par Jest/nyc. stderr: " + result.getStderr());
+            return CoverageResult.erreur("Rapport de couverture introuvable pour le projet " + idProjet + " (fichier " + summaryFile.getName() + " non produit). stderr: " + result.getStderr());
         }
 
         try {

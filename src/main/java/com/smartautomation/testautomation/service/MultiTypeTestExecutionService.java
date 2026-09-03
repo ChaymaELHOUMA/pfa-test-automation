@@ -85,6 +85,19 @@ public class MultiTypeTestExecutionService {
                 reussis = jestResult.getTestsReussis();
                 echoues = jestResult.getTestsEchoues();
                 succes = jestResult.isSuccess();
+                
+                // Capturer les messages d'erreur de niveau suite (ex: "Cannot find module")
+                if (jestResult.getTestResults() != null && !succes) {
+                    for (JestRunResult.TestSuiteResult suite : jestResult.getTestResults()) {
+                        if (suite.getMessage() != null && !suite.getMessage().isBlank()) {
+                            if (msgErreur == null || msgErreur.isBlank()) {
+                                msgErreur = "Erreur de suite: " + suite.getMessage();
+                            } else {
+                                msgErreur += " | " + suite.getMessage();
+                            }
+                        }
+                    }
+                }
             }
 
             details.add(new FichierDetail(nomFichier, categorie, total, reussis, echoues, succes, msgErreur));
@@ -128,6 +141,17 @@ public class MultiTypeTestExecutionService {
 
     public String determinerCategorie(String nomFichier) {
         String nomLower = nomFichier.toLowerCase(Locale.ROOT);
+        
+        // 1. Privilégier les suffixes explicites générés par MultiTypeGenerationService
+        // Ces suffixes doivent être vérifiés AVANT toute autre logique
+        if (nomLower.contains("-unitaire") && nomLower.endsWith(".test.js")) {
+            return "UNITAIRE";
+        }
+        if (nomLower.contains("-integration") && nomLower.endsWith(".test.js")) {
+            return "INTEGRATION";
+        }
+        
+        // 2. Fallback heuristique pour les anciens fichiers sans suffixe explicite
         if (nomLower.contains("integration")) {
             return "INTEGRATION";
         } else if (nomLower.contains("supertest") ||

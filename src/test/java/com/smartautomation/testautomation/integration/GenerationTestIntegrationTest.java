@@ -1,6 +1,5 @@
 package com.smartautomation.testautomation.integration;
 
-import com.smartautomation.testautomation.model.ResultatGeneration;
 import com.smartautomation.testautomation.service.LlmService;
 import com.smartautomation.testautomation.service.TestCodeExtractor;
 import com.smartautomation.testautomation.service.TestFileWriterService;
@@ -21,6 +20,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @SpringBootTest
 @AutoConfigureMockMvc
+@SuppressWarnings("null")
 public class GenerationTestIntegrationTest {
 
     @Autowired

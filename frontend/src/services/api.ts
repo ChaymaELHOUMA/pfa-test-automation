@@ -1,4 +1,4 @@
-import axios from 'axios';
+import axios, { AxiosError } from 'axios';
 import {
   AstAnalysisOutcome,
   CoverageResult,
@@ -28,6 +28,18 @@ export const setBaseUrl = (url: string) => { BASE_URL = url; };
 export const isForceMockMode = () => FORCE_MOCK_MODE;
 export const setForceMockMode = (mock: boolean) => { FORCE_MOCK_MODE = mock; };
 
+// Custom error types
+class ApiError extends Error {
+  constructor(
+    message: string,
+    public statusCode?: number,
+    public originalError?: any
+  ) {
+    super(message);
+    this.name = 'ApiError';
+  }
+}
+
 const client = () => axios.create({
   baseURL: BASE_URL,
   timeout: 45000,
@@ -36,12 +48,43 @@ const client = () => axios.create({
   }
 });
 
+// Helper function to handle API errors
+const handleApiError = (error: any, fallbackData: any, context: string): any => {
+  if (FORCE_MOCK_MODE) {
+    console.warn(`[API] ${context}: Force mock mode enabled, returning fallback data`);
+    return fallbackData;
+  }
+
+  if (axios.isCancel(error)) {
+    console.warn(`[API] ${context}: Request cancelled`);
+    return fallbackData;
+  }
+
+  if (error instanceof AxiosError) {
+    const statusCode = error.response?.status;
+    const errorMessage = error.response?.data?.error || error.message;
+    
+    console.error(`[API] ${context}: HTTP ${statusCode} - ${errorMessage}`, error);
+    
+    // Return fallback data for client errors (4xx) and server errors (5xx)
+    if (statusCode && statusCode >= 400) {
+      console.warn(`[API] ${context}: Returning fallback data due to error`);
+      return fallbackData;
+    }
+  }
+
+  // Network errors or other issues
+  console.error(`[API] ${context}: Unexpected error`, error);
+  return fallbackData;
+};
+
 export const checkBackendHealth = async (): Promise<boolean> => {
   if (FORCE_MOCK_MODE) return false;
   try {
     const res = await client().get('/analyser-ast?chemin=projet-reference/routes-utilisateurs.js', { timeout: 3000 });
     return res.status === 200 || res.status === 422;
-  } catch {
+  } catch (error) {
+    console.warn('[API] Backend health check failed:', error);
     return false;
   }
 };
@@ -53,8 +96,8 @@ export const apiService = {
     try {
       const res = await client().get<ProjectMetadata[]>('/api/projets');
       return res.data;
-    } catch {
-      return [];
+    } catch (error) {
+      return handleApiError(error, [], 'listerProjets');
     }
   },
 
@@ -66,11 +109,15 @@ export const apiService = {
     if (serviceFile) formData.append('serviceFile', serviceFile);
     if (nomProjet) formData.append('nomProjet', nomProjet);
 
-    const res = await axios.post<ProjectMetadata>(`${BASE_URL}/upload-projet`, formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-      timeout: 60000
-    });
-    return res.data;
+    try {
+      const res = await axios.post<ProjectMetadata>(`${BASE_URL}/upload-projet`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+        timeout: 60000
+      });
+      return res.data;
+    } catch (error) {
+      throw new ApiError('Failed to upload project', 0, error);
+    }
   },
 
   // 1. Analyse AST
@@ -79,9 +126,8 @@ export const apiService = {
     try {
       const res = await client().get<AstAnalysisOutcome>(`/analyser-ast`, { params: { chemin, idProjet } });
       return res.data;
-    } catch (err: any) {
-      console.warn('API Call failed, falling back to mock data:', err);
-      return MOCK_AST_OUTCOME;
+    } catch (error) {
+      return handleApiError(error, MOCK_AST_OUTCOME, 'analyserAst');
     }
   },
 
@@ -105,11 +151,11 @@ export const apiService = {
       }
       const res = await client().get('/construire-prompt', { params });
       return res.data;
-    } catch (err: any) {
-      console.warn('API Call /construire-prompt failed, falling back to mock:', err);
-      return {
-        prompt: `// Prompt de démonstration pour ${nomUnite} (${mode})\n// Analyse AST de ${chemin}\n\nGenère des tests unitaires/intégration Jest pour l'unité ${nomUnite}.`
-      };
+    } catch (error) {
+      return handleApiError(error, {
+        prompt: `// Prompt de démonstration pour ${nomUnite} (${mode})\n// Analyse AST de ${chemin}\n\nGenère des tests unitaires/intégration Jest pour l'unité ${nomUnite}.`,
+        erreur: 'API Error - using fallback prompt'
+      }, 'construirePrompt');
     }
   },
 
@@ -122,11 +168,10 @@ export const apiService = {
   ): Promise<PipelineResult> => {
     if (FORCE_MOCK_MODE) return MOCK_PIPELINE_RESULT;
     try {
-      const res = await client().post<PipelineResult>('/generer-et-executer-test', { chemin, nomUnite, mode, idProjet });
+      const res = await client().post<PipelineResult>('/generer-et-executer-test', { chemin, nomUnite, mode, idProjet }, { timeout: 120000 });
       return res.data;
-    } catch (err: any) {
-      console.warn('API Call /generer-et-executer-test failed:', err);
-      return MOCK_PIPELINE_RESULT;
+    } catch (error) {
+      return handleApiError(error, MOCK_PIPELINE_RESULT, 'genererEtExecuterTest');
     }
   },
 
@@ -136,8 +181,8 @@ export const apiService = {
     try {
       const res = await client().get<PromptComparisonResult>('/comparer-prompts', { params: { chemin, nomUnite, idProjet } });
       return res.data;
-    } catch {
-      return MOCK_PROMPT_COMPARISON;
+    } catch (error) {
+      return handleApiError(error, MOCK_PROMPT_COMPARISON, 'comparerPrompts');
     }
   },
 
@@ -145,10 +190,13 @@ export const apiService = {
   executerSuiteTests: async (idProjet?: string): Promise<MultiTypeTestResult> => {
     if (FORCE_MOCK_MODE) return MOCK_MULTI_TYPE_TEST_RESULT;
     try {
-      const res = await client().post<MultiTypeTestResult>('/executer-suite-tests', null, { params: { idProjet } });
+      const res = await axios.post<MultiTypeTestResult>(`${BASE_URL}/executer-suite-tests`, null, { 
+        params: { idProjet },
+        timeout: 180000 
+      });
       return res.data;
-    } catch {
-      return MOCK_MULTI_TYPE_TEST_RESULT;
+    } catch (error) {
+      return handleApiError(error, MOCK_MULTI_TYPE_TEST_RESULT, 'executerSuiteTests');
     }
   },
 
@@ -156,11 +204,13 @@ export const apiService = {
   genererSuiteMultiType: async (chemin: string, idProjet?: string): Promise<MultiTypeTestResult> => {
     if (FORCE_MOCK_MODE) return MOCK_MULTI_TYPE_TEST_RESULT;
     try {
-      const res = await client().post<MultiTypeTestResult>('/generer-suite-multi-type', null, { params: { chemin, idProjet } });
+      const res = await axios.post<MultiTypeTestResult>(`${BASE_URL}/generer-suite-multi-type`, null, { 
+        params: { chemin, idProjet },
+        timeout: 180000 
+      });
       return res.data;
-    } catch (err: any) {
-      console.warn('API Call /generer-suite-multi-type failed:', err);
-      return MOCK_MULTI_TYPE_TEST_RESULT;
+    } catch (error) {
+      return handleApiError(error, MOCK_MULTI_TYPE_TEST_RESULT, 'genererSuiteMultiType');
     }
   },
 
@@ -170,8 +220,8 @@ export const apiService = {
     try {
       const res = await client().post<{ titres: string[] }>('/extraire-titres-tests', { codeTest });
       return res.data;
-    } catch {
-      return { titres: ['cas nominal - creation utilisateur valide', 'cas erreur - email invalide'] };
+    } catch (error) {
+      return handleApiError(error, { titres: ['cas nominal - creation utilisateur valide', 'cas erreur - email invalide'] }, 'extraireTitresTests');
     }
   },
 
@@ -180,8 +230,8 @@ export const apiService = {
     try {
       const res = await client().post<TestDeduplicationResult>('/valider-non-redondance', { codeTest });
       return res.data;
-    } catch {
-      return MOCK_DEDUPLICATION_RESULT;
+    } catch (error) {
+      return handleApiError(error, MOCK_DEDUPLICATION_RESULT, 'validerNonRedondance');
     }
   },
 
@@ -190,10 +240,10 @@ export const apiService = {
     if (FORCE_MOCK_MODE) return MOCK_COVERAGE_RESULT;
     try {
       const target = idProjet ? `/api/coverage/${idProjet}` : '/api/coverage/projet-reference';
-      const res = await client().get<CoverageResult>(target);
+      const res = await axios.get<CoverageResult>(`${BASE_URL}${target}`, { timeout: 120000 });
       return res.data;
-    } catch {
-      return MOCK_COVERAGE_RESULT;
+    } catch (error) {
+      return handleApiError(error, MOCK_COVERAGE_RESULT, 'mesurerCouvertureProjet');
     }
   },
 
@@ -202,10 +252,10 @@ export const apiService = {
     if (FORCE_MOCK_MODE) return MOCK_MUTATION_RESULT;
     try {
       const target = idProjet ? `/api/mutation/${idProjet}` : '/api/mutation/projet-reference';
-      const res = await client().get<MutationResult>(target, { timeout: 310000 });
+      const res = await axios.get<MutationResult>(`${BASE_URL}${target}`, { timeout: 310000 });
       return res.data;
-    } catch {
-      return MOCK_MUTATION_RESULT;
+    } catch (error) {
+      return handleApiError(error, MOCK_MUTATION_RESULT, 'obtenirMutationProjetReference');
     }
   }
 };

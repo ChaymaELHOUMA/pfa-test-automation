@@ -33,32 +33,32 @@ public class GenerationTestService {
     }
 
     public ResultatGeneration genererEtSauvegarder(String nomFonction, String codeSource, String idProjet) {
-        String projetIdFinal = (idProjet != null && !idProjet.isBlank()) ? idProjet : "projet-reference";
-        String reponseLlm;
+        String finalProjectId = (idProjet != null && !idProjet.isBlank()) ? idProjet : "projet-reference";
+        String llmResponse;
         try {
-            reponseLlm = llmService.genererTest(nomFonction, codeSource);
+            llmResponse = llmService.genererTest(nomFonction, codeSource);
         } catch (LlmCallException e) {
-            log.warn("Echec de l'appel LLM pour la fonction {} : {}", nomFonction, e.getMessage());
-            return ResultatGeneration.echec("Erreur LLM : " + e.getMessage());
+            log.warn("LLM call failed for function {}: {}", nomFonction, e.getMessage());
+            return ResultatGeneration.echec("LLM error: " + e.getMessage());
         }
 
-        String codeTest;
+        String testCode;
         try {
-            codeTest = extractor.extraireCode(reponseLlm);
+            testCode = extractor.extraireCode(llmResponse);
         } catch (TestGenerationException e) {
-            log.warn("Reponse LLM invalide pour la fonction {} : {}", nomFonction, e.getMessage());
-            return ResultatGeneration.echec("Reponse LLM invalide : " + e.getMessage());
+            log.warn("Invalid LLM response for function {}: {}", nomFonction, e.getMessage());
+            return ResultatGeneration.echec("Invalid LLM response: " + e.getMessage());
         }
 
         try {
-            Path fichier = "projet-reference".equals(projetIdFinal)
-                    ? fileWriter.ecrireFichierTest(nomFonction, codeTest)
-                    : fileWriter.ecrireFichierTest(nomFonction, codeTest, projetIdFinal);
-            log.info("Test genere avec succes pour {} sur projet {} -> {}", nomFonction, projetIdFinal, fichier);
-            return ResultatGeneration.succes(fichier.toString());
+            Path file = "projet-reference".equals(finalProjectId)
+                    ? fileWriter.ecrireFichierTest(nomFonction, testCode)
+                    : fileWriter.ecrireFichierTest(nomFonction, testCode, finalProjectId);
+            log.info("Test generated successfully for {} on project {} -> {}", nomFonction, finalProjectId, file);
+            return ResultatGeneration.succes(file.toString());
         } catch (IOException e) {
-            log.error("Erreur d'ecriture du fichier de test pour {}", nomFonction, e);
-            return ResultatGeneration.echec("Erreur ecriture fichier : " + e.getMessage());
+            log.error("Error writing test file for {}", nomFonction, e);
+            return ResultatGeneration.echec("File write error: " + e.getMessage());
         }
     }
 }

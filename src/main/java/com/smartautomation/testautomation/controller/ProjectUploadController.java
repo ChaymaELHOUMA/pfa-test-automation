@@ -10,7 +10,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
@@ -49,10 +48,10 @@ public class ProjectUploadController {
             @RequestParam(value = "nomProjet", required = false) String nomProjet
     ) {
         if (file.isEmpty()) {
-            return ResponseEntity.badRequest().body(Map.of("erreur", "Fichier ZIP obligatoire"));
+            return ResponseEntity.badRequest().body(Map.of("error", "ZIP file is required"));
         }
         if (pointEntree == null || pointEntree.isBlank()) {
-            return ResponseEntity.badRequest().body(Map.of("erreur", "Point d'entrée obligatoire (ex: app.js)"));
+            return ResponseEntity.badRequest().body(Map.of("error", "Entry point is required (ex: app.js)"));
         }
 
         String originalFilename = file.getOriginalFilename();
@@ -66,24 +65,24 @@ public class ProjectUploadController {
         Path workspacePath = Paths.get(scriptsDir, "workspaces", idProjet);
 
         try {
-            // 1. Extraire le ZIP
+            // 1. Extract the ZIP
             Files.createDirectories(workspacePath);
             extraireZip(file.getInputStream(), workspacePath);
 
-            // 2. Vérifier que le point d'entrée existe dans le dossier extrait
+            // 2. Verify that the entry point exists in the extracted folder
             Path pointEntreePath = workspacePath.resolve(pointEntree);
             if (!Files.exists(pointEntreePath)) {
-                log.warn("Point d'entrée {} non trouvé dans {}", pointEntree, workspacePath.toAbsolutePath());
+                log.warn("Entry point {} not found in {}", pointEntree, workspacePath.toAbsolutePath());
             }
 
-            // 3. Générer les configurations dynamiques Jest & Stryker
+            // 3. Generate dynamic Jest & Stryker configurations
             genererJestConfig(idProjet, workspacePath);
             genererStrykerConfig(idProjet, workspacePath);
 
-            // 4. Scanner les fichiers .js
+            // 4. Scan .js files
             List<String> fichiers = projectService.listerFichiersJs(workspacePath);
 
-            // 5. Enregistrer le projet dans ProjectService
+            // 5. Register the project in ProjectService
             ProjectMetadata metadata = new ProjectMetadata(
                     idProjet,
                     nomFinal,
@@ -98,9 +97,9 @@ public class ProjectUploadController {
             return ResponseEntity.ok(metadata);
 
         } catch (IOException e) {
-            log.error("Erreur lors de l'extraction ou de la sauvegarde du projet {}", idProjet, e);
+            log.error("Error during project extraction or save for project {}", idProjet, e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(Map.of("erreur", "Erreur serveur lors de l'upload du projet : " + e.getMessage()));
+                    .body(Map.of("error", "Server error during project upload: " + e.getMessage()));
         }
     }
 
@@ -110,7 +109,7 @@ public class ProjectUploadController {
             while ((entry = zis.getNextEntry()) != null) {
                 Path filePath = targetDir.resolve(entry.getName()).normalize();
                 if (!filePath.startsWith(targetDir)) {
-                    // Prévention Zip Slip
+                    // Zip Slip prevention
                     continue;
                 }
                 if (entry.isDirectory()) {

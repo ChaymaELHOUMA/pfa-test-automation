@@ -198,6 +198,19 @@ public class MultiTypeGenerationService {
             reussis = jestResult.getTestsReussis();
             echoues = jestResult.getTestsEchoues();
             succes = jestResult.isSuccess();
+            
+            // Capturer les messages d'erreur de niveau suite (ex: "Cannot find module")
+            if (jestResult.getTestResults() != null && !succes) {
+                for (JestRunResult.TestSuiteResult suite : jestResult.getTestResults()) {
+                    if (suite.getMessage() != null && !suite.getMessage().isBlank()) {
+                        if (msgErreur == null || msgErreur.isBlank()) {
+                            msgErreur = "Erreur de suite: " + suite.getMessage();
+                        } else {
+                            msgErreur += " | " + suite.getMessage();
+                        }
+                    }
+                }
+            }
         }
 
         details.add(new FichierDetail(nomFichierEcrit, categorie, total, reussis, echoues, succes, msgErreur));

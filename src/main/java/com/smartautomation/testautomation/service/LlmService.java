@@ -14,6 +14,7 @@ import org.springframework.web.reactive.function.client.WebClientRequestExceptio
 import org.springframework.web.reactive.function.client.WebClientResponseException;
 
 import java.time.Duration;
+import java.util.Objects;
 import java.util.concurrent.TimeoutException;
 
 @Service
@@ -45,34 +46,34 @@ public class LlmService {
 
     private String construirePromptSimple(String nomFonction, String codeSource) {
         return """
-                Voici une fonction JavaScript nommée %s :
+                Here is a JavaScript function named %s:
 
                 %s
 
-                Génère des tests unitaires Jest distincts pour cette fonction, couvrant le cas nominal, les cas limites (ex: 0, "", [], {}) et les cas d'erreur/invalides.
+                Generate distinct Jest unit tests for this function, covering the nominal case, edge cases (ex: 0, "", [], {}) and error/invalid cases.
 
-                FORMAT DE NOMMAGE STRICTEMENT OBLIGATOIRE :
-                - test('cas nominal - <description>', () => { ... })
-                - test('cas limite - <description>', () => { ... })
-                - test('cas invalide - <description>', () => { ... })
-                - test('cas erreur - <description>', () => { ... })
+                STRICTLY REQUIRED NAMING FORMAT:
+                - test('nominal case - <description>', () => { ... })
+                - test('edge case - <description>', () => { ... })
+                - test('invalid case - <description>', () => { ... })
+                - test('error case - <description>', () => { ... })
 
-                CONSIGNES DE COMPILATION ET SYNTAXE JEST (TRÈS IMPORTANT) :
-                - Pour tester qu'une fonction synchrone lève une erreur (throw), enveloppe TOUJOURS l'appel dans une fonction fléchée : expect(() => %s(...)).toThrow();
-                - Le fichier de test doit être 100%% autonome et directement exécutable.
-                - Inclus la définition complète et exacte de la fonction directement en haut du fichier de test.
-                - Ne fais AUCUN require ni import vers un fichier externe.
+                JEST COMPILATION AND SYNTAX GUIDELINES (VERY IMPORTANT):
+                - To test that a synchronous function throws an error, ALWAYS wrap the call in an arrow function: expect(() => %s(...)).toThrow();
+                - The test file must be 100%% self-contained and directly executable.
+                - Include the complete and exact function definition at the top of the test file.
+                - Do NOT make ANY require or import to an external file.
 
-                Réponds uniquement avec un bloc de code JavaScript délimité par
+                Respond only with a JavaScript code block delimited by
                 ```javascript
-                et
+                and
                 ```,
-                sans aucune explication avant ou après le bloc.
+                without any explanation before or after the block.
                 """.formatted(nomFonction, codeSource, nomFonction);
     }
 
     public String genererDepuisPrompt(String prompt) {
-        LlmRequest requete = new LlmRequest(prompt);
+        LlmRequest request = new LlmRequest(prompt);
 
         String uri = String.format(
                 "/v1beta/models/%s:generateContent?key=%s",
@@ -81,47 +82,47 @@ public class LlmService {
         );
 
         try {
-            LlmResponse reponse = webClient.post()
-                    .uri(uri)
-                    .bodyValue(requete)
+            LlmResponse response = webClient.post()
+                    .uri(Objects.requireNonNull(uri))
+                    .bodyValue(request)
                     .retrieve()
                     .bodyToMono(LlmResponse.class)
                     .timeout(Duration.ofSeconds(timeoutSeconds))
                     .block();
 
-            if (reponse == null
-                    || reponse.getTexteComplet() == null
-                    || reponse.getTexteComplet().isBlank()) {
+            if (response == null
+                    || response.getTexteComplet() == null
+                    || response.getTexteComplet().isBlank()) {
 
                 throw new LlmCallException(
-                        "Le LLM a renvoyé une réponse vide"
+                        "LLM returned an empty response"
                 );
             }
 
-            return reponse.getTexteComplet();
+            return response.getTexteComplet();
 
         } catch (WebClientResponseException e) {
 
             log.error(
-                    "Erreur HTTP {} lors de l'appel au LLM : {}",
+                    "HTTP error {} during LLM call: {}",
                     e.getStatusCode(),
                     e.getResponseBodyAsString()
             );
 
             throw new LlmCallException(
-                    "Erreur HTTP du LLM : " + e.getStatusCode(),
+                    "LLM HTTP error: " + e.getStatusCode(),
                     e
             );
 
         } catch (WebClientRequestException e) {
 
             log.error(
-                    "Erreur réseau lors de l'appel au LLM",
+                    "Network error during LLM call",
                     e
             );
 
             throw new LlmCallException(
-                    "Erreur réseau lors de l'appel au LLM : " + e.getMessage(),
+                    "Network error during LLM call: " + e.getMessage(),
                     e
             );
 
@@ -130,23 +131,23 @@ public class LlmService {
             if (e.getCause() instanceof TimeoutException) {
 
                 log.error(
-                        "Timeout ({}s) lors de l'appel au LLM",
+                        "Timeout ({}s) during LLM call",
                         timeoutSeconds
                 );
 
                 throw new LlmCallException(
-                        "Timeout dépassé lors de l'appel au LLM",
+                        "Timeout exceeded during LLM call",
                         e
                 );
             }
 
             log.error(
-                    "Erreur inattendue lors de l'appel au LLM",
+                    "Unexpected error during LLM call",
                     e
             );
 
             throw new LlmCallException(
-                    "Erreur inattendue lors de l'appel au LLM : " + e.getMessage(),
+                    "Unexpected error during LLM call: " + e.getMessage(),
                     e
             );
         }

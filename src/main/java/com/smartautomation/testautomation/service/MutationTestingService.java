@@ -46,6 +46,7 @@ public class MutationTestingService {
 
         NodeExecutionResult result;
         if ("projet-reference".equals(idProjet) || idProjet == null || idProjet.isBlank()) {
+            log.info("Utilisation volontaire du projet de référence pour la campagne de mutation.");
             result = nodeBridgeService.runNpxCommand(
                     timeoutSeconds,
                     "stryker", "run"
@@ -58,10 +59,8 @@ public class MutationTestingService {
                         "stryker", "run", "workspaces/" + idProjet + "/stryker.config.json"
                 );
             } else {
-                result = nodeBridgeService.runNpxCommand(
-                        timeoutSeconds,
-                        "stryker", "run"
-                );
+                log.error("Configuration Stryker introuvable pour le projet {}", idProjet);
+                return MutationResult.erreur("Configuration introuvable pour le projet " + idProjet + " — vérifiez que le projet a bien été uploadé et initialisé.");
             }
         }
 
@@ -75,14 +74,11 @@ public class MutationTestingService {
             reportFile = new File(scriptsDir, "reports/mutation/mutation.json");
         } else {
             reportFile = new File(scriptsDir, "workspaces/" + idProjet + "/reports/mutation/mutation.json");
-            if (!reportFile.exists()) {
-                reportFile = new File(scriptsDir, "reports/mutation/mutation.json");
-            }
         }
 
         if (!reportFile.exists()) {
             log.error("Fichier de rapport Stryker introuvable : {}", reportFile.getAbsolutePath());
-            return MutationResult.erreur("Rapport Stryker mutation.json non produit. stderr: " + result.getStderr());
+            return MutationResult.erreur("Rapport Stryker introuvable pour le projet " + idProjet + " (fichier " + reportFile.getName() + " non produit). stderr: " + result.getStderr());
         }
 
         try {

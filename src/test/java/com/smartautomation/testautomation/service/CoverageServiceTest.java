@@ -1,17 +1,13 @@
 package com.smartautomation.testautomation.service;
 
 import com.smartautomation.testautomation.model.CoverageResult;
-import com.smartautomation.testautomation.model.NodeExecutionResult;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 class CoverageServiceTest {
 

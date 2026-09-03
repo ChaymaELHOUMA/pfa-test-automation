@@ -4,6 +4,8 @@ import com.smartautomation.testautomation.model.BrancheInfo;
 import com.smartautomation.testautomation.model.CasErreurInfo;
 import com.smartautomation.testautomation.model.UniteTestable;
 import com.smartautomation.testautomation.service.ProjectService.ProjectMetadata;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -11,6 +13,8 @@ import java.util.List;
 
 @Service
 public class PromptBuilderService {
+
+    private static final Logger log = LoggerFactory.getLogger(PromptBuilderService.class);
 
     private final ProjectService projectService;
 
@@ -161,7 +165,10 @@ public class PromptBuilderService {
         if (appImport != null) {
             sb.append("  const app = require('").append(appImport).append("');\n");
         } else {
-            sb.append("  const app = require('../").append(metadata.pointEntree().replace(".js", "")).append("');\n");
+            log.warn("Impossible de calculer le chemin d'import pour {} avec idProjet={}, subfolder={}, pointEntree={}",
+                    metadata.pointEntree(), idProjet, subfolder, metadata.pointEntree());
+            sb.append("  // ERREUR: chemin d'import impossible à calculer - le fichier cible n'existe pas\n");
+            sb.append("  // const app = require('CHEMIN_A_CORRIGER');\n");
         }
 
         if (repoImport != null) {
@@ -175,6 +182,8 @@ public class PromptBuilderService {
         sb.append("const request = require('supertest');\n");
         if (appImport != null) {
             sb.append("const app = require('").append(appImport).append("');\n");
+        } else {
+            sb.append("// const app = require('CHEMIN_A_CORRIGER');\n");
         }
         if (repoImport != null) {
             sb.append("const { reinitialiserEtat } = require('").append(repoImport).append("');\n");
@@ -272,6 +281,11 @@ public class PromptBuilderService {
         sb.append("  CHEMIN EXACT OBLIGATOIRE depuis ").append(subfolder).append("/ (ne pas raccourcir) :\n");
         if (appImport != null) {
             sb.append("    const app = require('").append(appImport).append("');\n");
+        } else {
+            log.warn("Impossible de calculer le chemin d'import pour {} avec idProjet={}, subfolder={}, pointEntree={}",
+                    metadata.pointEntree(), idProjet, subfolder, metadata.pointEntree());
+            sb.append("    // ERREUR: chemin d'import impossible à calculer - le fichier cible n'existe pas\n");
+            sb.append("    // const app = require('CHEMIN_A_CORRIGER');\n");
         }
         if (repoImport != null) {
             sb.append("    const { reinitialiserEtat } = require('").append(repoImport).append("');\n");
@@ -292,6 +306,8 @@ public class PromptBuilderService {
         sb.append("const request = require('supertest');\n");
         if (appImport != null) {
             sb.append("const app = require('").append(appImport).append("');\n");
+        } else {
+            sb.append("// const app = require('CHEMIN_A_CORRIGER');\n");
         }
         if (repoImport != null) {
             sb.append("const { reinitialiserEtat } = require('").append(repoImport).append("');\n");

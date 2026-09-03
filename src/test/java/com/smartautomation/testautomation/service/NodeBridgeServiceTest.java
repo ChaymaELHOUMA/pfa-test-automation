@@ -22,7 +22,7 @@ class NodeBridgeServiceTest {
     private NodeBridgeService nodeBridgeService;
 
     @Test
-    void cas_nominal_doit_retourner_success_true() {
+    void nominal_case_should_return_success_true() {
         NodeExecutionResult result = nodeBridgeService.runScript("hello.js");
 
         assertTrue(result.isSuccess());
@@ -32,7 +32,7 @@ class NodeBridgeServiceTest {
     }
 
     @Test
-    void script_en_erreur_doit_retourner_success_false_avec_stderr() {
+    void error_script_should_return_success_false_with_stderr() {
         NodeExecutionResult result = nodeBridgeService.runScript("erreur.js");
 
         assertFalse(result.isSuccess());
@@ -42,7 +42,7 @@ class NodeBridgeServiceTest {
     }
 
     @Test
-    void script_qui_boucle_doit_declencher_le_timeout() {
+    void infinite_loop_script_should_trigger_timeout() {
         NodeExecutionResult result = nodeBridgeService.runScript("boucle-infinie.js");
 
         assertFalse(result.isSuccess());
@@ -51,7 +51,7 @@ class NodeBridgeServiceTest {
     }
 
     @Test
-    void script_inexistant_doit_retourner_une_erreur_technique_sans_exception() {
+    void non_existent_script_should_return_technical_error_without_exception() {
         NodeExecutionResult result = nodeBridgeService.runScript("ce-fichier-n-existe-pas.js");
 
         assertFalse(result.isSuccess());

@@ -8,8 +8,7 @@ import {
   TestTube,
   ShieldCheck,
   FileText,
-  FolderCheck,
-  ChevronRight
+  FolderCheck
 } from 'lucide-react';
 
 export const Sidebar: React.FC = () => {
@@ -74,17 +73,6 @@ export const Sidebar: React.FC = () => {
             );
           })}
         </nav>
-      </div>
-
-      {/* Footer Info Box */}
-      <div className="p-4 m-3 rounded-xl bg-[#141A43] border border-slate-700/60 text-xs text-slate-300">
-        <div className="flex items-center justify-between text-[11px] font-semibold text-[#00A896] mb-1">
-          <span>Sprint Final PFA</span>
-          <ChevronRight className="w-3.5 h-3.5" />
-        </div>
-        <p className="text-[11px] text-slate-400 leading-snug">
-          Génération LLM ciblée & Mesures instrumentées (nyc & Stryker).
-        </p>
       </div>
     </aside>
   );
