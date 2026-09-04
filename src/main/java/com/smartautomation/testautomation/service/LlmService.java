@@ -83,7 +83,7 @@ public class LlmService {
 
         try {
             LlmResponse response = webClient.post()
-                    .uri(Objects.requireNonNull(uri))
+                    .uri(uri)
                     .bodyValue(request)
                     .retrieve()
                     .bodyToMono(LlmResponse.class)

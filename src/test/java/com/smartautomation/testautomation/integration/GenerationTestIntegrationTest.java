@@ -83,6 +83,6 @@ public class GenerationTestIntegrationTest {
                 .content(requestBody))
                 .andExpect(status().isUnprocessableEntity())
                 .andExpect(jsonPath("$.succes").value(false))
-                .andExpect(jsonPath("$.messageErreur").value("Erreur LLM : Service Unavailable"));
+                .andExpect(jsonPath("$.messageErreur").value("LLM error: Service Unavailable"));
     }
 }

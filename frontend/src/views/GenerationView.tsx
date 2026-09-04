@@ -73,26 +73,26 @@ export const GenerationView: React.FC = () => {
   const handleGenerateAndExecute = async () => {
     setLoadingGeneration(true);
     setLogs([
-      `[00:01] 🚀 Initialisation du pipeline pour ${selectedNomUnite} (Projet: ${activeProject.nomProjet})...`,
-      `[00:02] 🔍 Extraction de l'extrait AST (${currentFilePath})...`,
-      `[00:03] 📝 Construction du prompt structuré (${mode.toUpperCase()})...`,
-      `[00:05] 🤖 Appel LLM via WebClient...`
+      `[00:01] Initialisation du pipeline pour ${selectedNomUnite} (Projet: ${activeProject.nomProjet})...`,
+      `[00:02] Extraction de l'extrait AST (${currentFilePath})...`,
+      `[00:03] Construction du prompt structuré (${mode.toUpperCase()})...`,
+      `[00:05] Appel LLM via WebClient...`
     ]);
 
     try {
       await new Promise(r => setTimeout(r, 1000));
-      setLogs(prev => [...prev, `[00:08] 📥 Code de test généré. Validation syntaxique...`]);
+      setLogs(prev => [...prev, `[00:08] Code de test généré. Validation syntaxique...`]);
 
       const res = await apiService.genererEtExecuterTest(currentFilePath, selectedNomUnite, mode, activeProject.idProjet);
 
-      setLogs(prev => [...prev, `[00:10] 🧪 Lancement du runner Jest dans le workspace...`]);
+      setLogs(prev => [...prev, `[00:10] Lancement du runner Jest dans le workspace...`]);
 
       const codeAffiche = res.codeTest || `const request = require('supertest');\nconst app = require('../workspaces/${activeProject.idProjet}/${activeProject.pointEntree}');\n\ntest('cas nominal - ${selectedNomUnite}', async () => {\n  const response = await request(app).get('/');\n  expect(response.statusCode).toBe(200);\n});`;
 
       setLogs(prev => [
         ...prev,
-        `[00:14] ✅ Exécution terminée : ${res.testsReussis || 9}/${res.totalTests || 9} tests réussis.`,
-        `[00:14] 📄 Code du test disponible (${codeAffiche.split('\n').length} lignes).`
+        `[00:14] Exécution terminée : ${res.testsReussis || 9}/${res.totalTests || 9} tests réussis.`,
+        `[00:14] Code du test disponible (${codeAffiche.split('\n').length} lignes).`
       ]);
 
       setPipelineResult(res);
@@ -112,7 +112,7 @@ export const GenerationView: React.FC = () => {
       });
 
     } catch (err: any) {
-      setLogs(prev => [...prev, `[00:15] ❌ ERREUR: ${err.message || 'Échec du pipeline'}`]);
+      setLogs(prev => [...prev, `[00:15] ERREUR: ${err.message || 'Échec du pipeline'}`]);
     } finally {
       setLoadingGeneration(false);
     }

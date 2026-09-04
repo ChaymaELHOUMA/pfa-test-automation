@@ -19,7 +19,7 @@ public class WebClientConfig {
     public WebClient llmWebClient() {
     
     return WebClient.builder()
-            .baseUrl(Objects.requireNonNull(baseUrl))
+            .baseUrl(baseUrl)
             .defaultHeader("Content-Type", "application/json")
             .build();
 }

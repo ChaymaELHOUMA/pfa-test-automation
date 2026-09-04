@@ -177,7 +177,7 @@ class JestExecutionServiceTest {
         assertTrue(resultat.isErreurTechnique(), "Doit être une erreur technique");
         assertTrue(resultat.isErreurCompilation(), "Doit être categorisée comme erreur de compilation");
         assertNotNull(resultat.getMessageErreurTechnique());
-        assertTrue(resultat.getMessageErreurTechnique().contains("Le test genere ne compile pas"));
+        assertTrue(resultat.getMessageErreurTechnique().contains("Generated test does not compile"));
         assertNotNull(resultat.getDetailErreurCompilation());
         assertTrue(resultat.getDetailErreurCompilation().contains("SyntaxError"));
     }

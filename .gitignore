@@ -8,18 +8,25 @@ target/
 node-runner/generated-tests/*.test.js
 node_modules/
 
+# Environment variables
 .env
+.env.local
+.env.*.local
+
+# GitHub
 .github/modernize/
+
+# Frontend
 frontend/node_modules/
 frontend/node-runner/
+frontend/dist/
 
-# Projets upload�s et extraits
+# Projets uploadés et extraits
 node-runner/workspaces/
 
-# Ignorer tout le contenu des tests g�n�r�s (fichiers et sous-dossiers par projet)
+# Ignorer tout le contenu des tests générés (fichiers et sous-dossiers par projet)
 node-runner/generated-tests/*
 !node-runner/generated-tests/.gitkeep
-
 
 # Dossiers temporaires et rapports de node-runner
 node-runner/node_modules/
@@ -32,4 +39,36 @@ node-runner/*-brut.txt
 start.log
 package.json
 package-lock.json
-frontend/dist/
+
+# Certificates and keys
+*.key
+*.pem
+*.p12
+*.crt
+
+# Credentials
+credentials.json
+secrets.json
+secrets/
+
+# Logs
+logs/
+*.log.*
+
+# Process files
+*.pid
+
+# Cache
+.cache/
+*.cache
+
+# Temporary files
+*.tmp
+*.temp
+*.swp
+*.swo
+
+# Maven wrapper (optional)
+.mvn/
+mvnw
+mvnw.cmd
